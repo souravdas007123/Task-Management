@@ -1,0 +1,10 @@
+<tr>
+    <td><div class="task-title">{{ p.title }}</div><div class="task-meta"><span class="muted">{{ p.get_category_display }}, {{ p.quantity }} x {{ currency }}{{ p.unit_cost|floatformat:"2g" }}{% if p.project %}, {{ p.project.name }}{% endif %}</span></div>{% if p.description %}<div class="task-meta"><span class="muted">{{ p.description }}</span></div>{% endif %}</td>
+    <td>{{ p.requested_by.get_full_name|default:p.requested_by.username }}</td>
+    <td class="num">{{ currency }}{{ p.total|floatformat:"2g" }}</td>
+    <td>{{ step }}</td>
+    <td class="row-actions">
+        <form method="POST" action="{% url 'purchase_approve' p.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Approve</button></form>
+        <form method="POST" action="{% url 'purchase_reject' p.pk %}" class="inline" onsubmit="var n = prompt('Reason for rejecting (optional)'); if (n === null) { return false; } this.note.value = n;">{% csrf_token %}<input type="hidden" name="note" value=""><button type="submit" class="btn btn-ghost btn-sm">Reject</button></form>
+    </td>
+</tr>

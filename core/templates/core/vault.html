@@ -1,0 +1,37 @@
+{% extends 'core/base.html' %}
+{% block title %}Documents{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{% if own %}My documents{% else %}Documents of {{ person.get_full_name|default:person.username }}{% endif %}</h1>
+        <p class="page-sub">Personal documents such as PAN, Aadhaar and certificates. Stored privately: only {% if own %}you and HR{% else %}the employee and HR{% endif %} can open them.</p>
+    </div>
+    <div class="head-actions">
+        {% if hr %}<a href="{% url 'vault_overview' %}" class="btn btn-ghost">Expiring documents</a>{% endif %}
+        <a href="{% if own %}{% url 'vault_add' %}{% else %}{% url 'vault_person_add' person.pk %}{% endif %}" class="btn btn-primary">Add a document</a>
+    </div>
+</div>
+<section class="card">
+    {% if docs %}
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Document</th><th scope="col">Number</th><th scope="col">Expires</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        {% for d in docs %}
+        <tr>
+            <td><a class="task-title" href="{% url 'vault_download' d.pk %}">{{ d.label }}</a><div class="task-meta"><span class="muted">{{ d.get_kind_display }}, added {{ d.created_at|date:"d M Y" }}</span></div></td>
+            <td>{{ d.reference|default:"-" }}</td>
+            <td class="nowrap">{% if d.expires_on %}{{ d.expires_on|date:"d M Y" }}{% if d.state == 'expired' %} <span class="overdue">Expired</span>{% elif d.state == 'soon' %} <span class="chip">Expires soon</span>{% endif %}{% else %}-{% endif %}</td>
+            <td>{% if d.is_verified %}<span class="pill"><span class="dot c-completed"></span>Verified</span>{% else %}<span class="muted">Not verified</span>{% endif %}</td>
+            <td class="row-actions">
+                {% if hr and not own %}<form method="POST" action="{% url 'vault_verify' d.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">{% if d.is_verified %}Unverify{% else %}Verify{% endif %}</button></form>{% endif %}
+                {% if hr or not d.is_verified %}<form method="POST" action="{% url 'vault_delete' d.pk %}" class="inline" onsubmit="return confirm('Delete this document?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}
+    <div class="empty"><p>No documents yet.</p></div>
+    {% endif %}
+</section>
+{% endblock %}

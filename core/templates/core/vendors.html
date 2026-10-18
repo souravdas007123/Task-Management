@@ -1,0 +1,33 @@
+{% extends 'core/base.html' %}
+{% block title %}Vendors{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Vendors</h1>
+        <p class="page-sub">Suppliers you buy from.</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'purchase_list' %}" class="btn btn-ghost">Purchases</a>
+        <a href="{% url 'vendor_add' %}" class="btn btn-primary">Add vendor</a>
+    </div>
+</div>
+<section class="card">
+    {% if vendors %}
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Vendor</th><th scope="col">Contact</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        {% for v in vendors %}
+        <tr>
+            <td><div class="task-title">{{ v.name }}</div>{% if v.notes %}<div class="task-meta"><span class="muted">{{ v.notes }}</span></div>{% endif %}</td>
+            <td>{{ v.contact_person }}{% if v.email %}<div class="task-meta"><span class="muted">{{ v.email }}</span></div>{% endif %}{% if v.phone %}<div class="task-meta"><span class="muted">{{ v.phone }}</span></div>{% endif %}</td>
+            <td>{% if v.is_active %}Active{% else %}<span class="muted">Inactive</span>{% endif %}</td>
+            <td class="row-actions"><a href="{% url 'vendor_edit' v.pk %}" class="btn btn-ghost btn-sm">Edit</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}
+    <div class="empty"><p>No vendors yet.</p><a href="{% url 'vendor_add' %}" class="btn btn-primary">Add vendor</a></div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,4 +1,6 @@
 """Task ke views: dashboard, add/update/delete, detail aur uske actions (comments, checklist, files, time)."""
+import datetime
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -16,11 +18,11 @@ from .celebrations import upcoming
 from .filters import SORT_CHOICES, filter_tasks, parse_int, scope_tasks, sort_tasks
 from .forms import AttachmentForm, ChecklistItemForm, CommentForm, TaskForm, TimeEntryForm
 from .models import (
-    Announcement, Attachment, ChecklistItem, CompanyDocument, Comment, DocumentAck, Label, Project, Review, Task,
-    Ticket, TimeEntry, Visitor,
+    Advance, Announcement, Attachment, ChecklistItem, CompanyDocument, Comment, DocumentAck, EmployeeDocument, Label,
+    Project, PurchaseRequest, Review, Task, Ticket, TimeEntry, Visitor,
 )
 from .permissions import (
-    can_delete_task, can_edit_task, can_view_task, is_manager, visible_projects, visible_tasks,
+    can_delete_task, can_edit_task, can_view_task, is_hr, is_manager, visible_projects, visible_tasks,
 )
 from .services import (
     annotate_permissions, diff_snapshots, display_name, find_mentions, log_activity, notify,
@@ -116,6 +118,7 @@ def dashboard(request):
 
 
 def office_todos(user):
+    from .views_requests import can_review  # views_requests ko views se alag rakhne ke liye yahin import
     """Dashboard par 'aapke liye' list: jo office kaam is user ke jawab ka intezaar kar raha hai."""
     items = []
     acked = DocumentAck.objects.filter(user=user, document=OuterRef('pk'), version=OuterRef('version'))
@@ -134,6 +137,25 @@ def office_todos(user):
     if tickets:
         items.append((f'{tickets} helpdesk ticket{"s" if tickets != 1 else ""} assigned to you', reverse('ticket_list') + '?scope=assigned'))
     today = timezone.localdate()
+    soon = today + datetime.timedelta(days=30)
+    own_docs = EmployeeDocument.objects.filter(user=user, expires_on__isnull=False, expires_on__lte=soon).count()
+    if own_docs:
+        items.append((f'{own_docs} of your document{"s" if own_docs != 1 else ""} expired or expiring soon', reverse('vault_me')))
+    if is_hr(user):
+        hr_docs = EmployeeDocument.objects.filter(
+            expires_on__isnull=False, expires_on__lte=soon, user__is_active=True).exclude(user=user).count()
+        if hr_docs:
+            items.append((f'{hr_docs} employee document{"s" if hr_docs != 1 else ""} expired or expiring soon', reverse('vault_overview')))
+        advances = Advance.objects.filter(status='pending').exclude(user=user).count()
+        if advances:
+            items.append((f'{advances} salary advance request{"s" if advances != 1 else ""} to decide', reverse('advance_list')))
+        to_order = PurchaseRequest.objects.filter(status='approved').count()
+        if to_order:
+            items.append((f'{to_order} approved purchase{"s" if to_order != 1 else ""} to order', reverse('purchase_list')))
+    purchases = PurchaseRequest.objects.filter(status='pending').select_related('requested_by', 'requested_by__profile')
+    waiting = sum(1 for p in purchases if can_review(user, p.requested_by))
+    if waiting:
+        items.append((f'{waiting} purchase request{"s" if waiting != 1 else ""} waiting for your approval', reverse('purchase_list')))
     visitors = Visitor.objects.filter(host=user, status='expected', expected_on=today).count()
     if visitors:
         items.append((f'{visitors} visitor{"s" if visitors != 1 else ""} expected today', reverse('visitor_list')))

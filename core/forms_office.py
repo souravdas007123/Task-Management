@@ -2,12 +2,13 @@
 import datetime
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
 
 from .models import (
-    AttendanceRequest, Candidate, Claim, CompanyDocument, JobOpening, Resignation, Review, ReviewCycle, Room, Ticket,
-    TicketComment, Visitor,
+    Advance, AttendanceRequest, Candidate, Claim, CompanyDocument, EmployeeDocument, JobOpening, Project, PurchaseRequest,
+    Resignation, Review, ReviewCycle, Room, Ticket, TicketComment, Vendor, Visitor,
 )
 
 TEXT = {'class': 'form-control'}
@@ -400,3 +401,116 @@ class ResignationForm(forms.ModelForm):
 class ResignationDecisionForm(forms.Form):
     last_working_day = forms.DateField(required=False, widget=date_widget())
     hr_note = forms.CharField(required=False, max_length=300, widget=forms.TextInput(attrs=TEXT))
+
+
+# ---------------------------------------------------------------- advances, employee documents, purchases
+
+class AdvanceForm(forms.ModelForm):
+    class Meta:
+        model = Advance
+        fields = ['amount', 'installments', 'reason']
+        widgets = {
+            'amount': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'step': '0.01'}),
+            'installments': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '36'}),
+            'reason': forms.TextInput(attrs=TEXT),
+        }
+        labels = {'installments': 'Repay over (months)'}
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def clean_amount(self):
+        from .advances import max_amount
+        value = self.cleaned_data['amount']
+        limit = max_amount(self.user) if self.user is not None else None
+        if self.user is not None and limit is None:
+            raise forms.ValidationError('Your salary is not set up yet. Ask HR.')
+        if limit is not None and value > limit:
+            raise forms.ValidationError(
+                f'You can take at most {limit} ({settings.ADVANCE_MAX_MONTHS} months of gross salary).')
+        return value
+
+    def clean(self):
+        data = super().clean()
+        if self.user is not None and not self.errors:
+            from .advances import open_advance
+            if open_advance(self.user) is not None:
+                raise forms.ValidationError('You already have an advance that is pending or not fully repaid.')
+        return data
+
+
+class EmployeeDocumentForm(forms.ModelForm):
+    class Meta:
+        model = EmployeeDocument
+        fields = ['kind', 'title', 'reference', 'file', 'expires_on']
+        widgets = {
+            'kind': forms.Select(attrs=TEXT),
+            'title': forms.TextInput(attrs={**TEXT, 'placeholder': 'Optional, e.g. Passport (India)'}),
+            'reference': forms.TextInput(attrs=TEXT),
+            'expires_on': date_widget(),
+        }
+        labels = {'expires_on': 'Expires on'}
+        help_texts = {'file': 'PDF, image or Word file up to 10 MB. Only you and HR can open it.'}
+
+    def clean_expires_on(self):
+        value = self.cleaned_data.get('expires_on')
+        if value and value.year < 2000:
+            raise forms.ValidationError('Enter a valid date.')
+        return value
+
+
+class VendorForm(forms.ModelForm):
+    class Meta:
+        model = Vendor
+        fields = ['name', 'contact_person', 'email', 'phone', 'notes', 'is_active']
+        widgets = {
+            'name': forms.TextInput(attrs=TEXT), 'contact_person': forms.TextInput(attrs=TEXT),
+            'email': forms.EmailInput(attrs=TEXT), 'phone': forms.TextInput(attrs=TEXT),
+            'notes': forms.TextInput(attrs=TEXT),
+        }
+        error_messages = {'name': {'unique': 'A vendor with this name already exists.'}}
+
+    def clean_name(self):
+        value = self.cleaned_data['name'].strip()
+        if not value:
+            raise forms.ValidationError('Enter the vendor name.')
+        return value
+
+
+class PurchaseForm(forms.ModelForm):
+    class Meta:
+        model = PurchaseRequest
+        fields = ['title', 'category', 'description', 'quantity', 'unit_cost', 'project', 'vendor', 'needed_by']
+        widgets = {
+            'title': forms.TextInput(attrs={**TEXT, 'placeholder': 'e.g. 5 office chairs'}),
+            'category': forms.Select(attrs=TEXT),
+            'description': forms.TextInput(attrs=TEXT),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
+            'unit_cost': forms.NumberInput(attrs={'class': 'form-control', 'min': '0.01', 'step': '0.01'}),
+            'project': forms.Select(attrs=TEXT),
+            'vendor': forms.Select(attrs=TEXT),
+            'needed_by': date_widget(),
+        }
+        labels = {'unit_cost': 'Cost per item', 'project': 'Charge to project (optional)', 'vendor': 'Preferred vendor (optional)'}
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .permissions import visible_projects
+        projects = Project.objects.all()
+        self.fields['project'].queryset = visible_projects(projects, user) if user is not None else projects
+        self.fields['project'].empty_label = 'No project'
+        self.fields['vendor'].queryset = Vendor.objects.filter(is_active=True)
+        self.fields['vendor'].empty_label = 'Any vendor'
+
+    def clean_title(self):
+        value = self.cleaned_data['title'].strip()
+        if not value:
+            raise forms.ValidationError('Enter what you need.')
+        return value
+
+    def clean_needed_by(self):
+        value = self.cleaned_data.get('needed_by')
+        if value and value < timezone.localdate():
+            raise forms.ValidationError('The date cannot be in the past.')
+        return value

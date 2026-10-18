@@ -40,6 +40,7 @@
                 <li><span>Tax (TDS)</span><strong>{{ currency }}{{ payslip.tax|floatformat:"2g" }}</strong></li>
                 {% if payslip.other_deduction %}<li><span>Other</span><strong>{{ currency }}{{ payslip.other_deduction|floatformat:"2g" }}</strong></li>{% endif %}
                 {% if payslip.leave_deduction %}<li><span>Unpaid leave ({{ payslip.unpaid_days }} day{{ payslip.unpaid_days|pluralize }})</span><strong>{{ currency }}{{ payslip.leave_deduction|floatformat:"2g" }}</strong></li>{% endif %}
+                {% if payslip.advance_deduction %}<li><span>Salary advance repayment</span><strong>{{ currency }}{{ payslip.advance_deduction|floatformat:"2g" }}</strong></li>{% endif %}
                 {% if payslip.extra_deduction %}<li><span>Extra deduction</span><strong>{{ currency }}{{ payslip.extra_deduction|floatformat:"2g" }}</strong></li>{% endif %}
                 <li><span><strong>Total</strong></span><strong>{{ currency }}{{ payslip.total_deductions|floatformat:"2g" }}</strong></li>
             </ul>

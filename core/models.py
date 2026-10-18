@@ -13,6 +13,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
+from .storage import PrivateStorage
 from .validators import ALLOWED_ATTACHMENT_EXTENSIONS, ALLOWED_RECEIPT_EXTENSIONS, validate_file_size
 
 
@@ -548,6 +549,8 @@ class Payslip(models.Model):
     extra_deduction = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     # Approved personal claims jo is slip mein de di gayi (tax-free, gross mein nahi ginti)
     reimbursement = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    # Salary advance ki EMI jo is slip se kati
+    advance_deduction = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     adjustment_note = models.CharField(max_length=200, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
     generated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
@@ -567,7 +570,7 @@ class Payslip(models.Model):
 
     @property
     def total_deductions(self):
-        return self.pf + self.tax + self.other_deduction + self.leave_deduction + self.extra_deduction
+        return self.pf + self.tax + self.other_deduction + self.leave_deduction + self.extra_deduction + self.advance_deduction
 
     @property
     def net(self):
@@ -1040,3 +1043,125 @@ class Resignation(models.Model):
     @property
     def is_active(self):
         return self.status in ('pending', 'accepted')
+
+
+# ---------------------------------------------------------------- advances, employee documents, purchases
+
+class Advance(models.Model):
+    """Salary advance / loan. Payslip se EMI katti hai. Paisa HR alag se deta hai, system sirf hisab rakhta hai."""
+    STATUS_CHOICES = [
+        ('pending', 'Waiting for HR'), ('approved', 'Approved'), ('rejected', 'Rejected'), ('closed', 'Closed early'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='advances')
+    amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('1'))])
+    installments = models.PositiveSmallIntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(36)])
+    reason = models.CharField(max_length=300, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    first_month = models.DateField(null=True, blank=True, help_text='First day of the month of the first deduction.')
+    decided_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    decided_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+
+    def __str__(self):
+        return f'{self.user_id} {self.amount}'
+
+
+class AdvanceInstallment(models.Model):
+    advance = models.ForeignKey(Advance, on_delete=models.CASCADE, related_name='deductions')
+    payslip = models.ForeignKey(Payslip, on_delete=models.CASCADE, related_name='advance_deductions')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['advance', 'payslip'], name='one_installment_per_payslip')]
+
+
+class EmployeeDocument(models.Model):
+    KIND_CHOICES = [
+        ('pan', 'PAN card'), ('aadhaar', 'Aadhaar / national ID'), ('passport', 'Passport'),
+        ('bank', 'Bank proof'), ('offer', 'Offer / appointment letter'), ('contract', 'Contract'),
+        ('education', 'Education certificate'), ('experience', 'Experience letter'), ('other', 'Other'),
+    ]
+    EXTENSIONS = ['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx']
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='vault_documents')
+    kind = models.CharField(max_length=12, choices=KIND_CHOICES, default='other')
+    title = models.CharField(max_length=120, blank=True)
+    reference = models.CharField(max_length=60, blank=True, help_text='Document number, if any.')
+    file = models.FileField(
+        upload_to='employee_docs/', storage=PrivateStorage(),
+        validators=[FileExtensionValidator(EXTENSIONS), validate_file_size],
+    )
+    expires_on = models.DateField(null=True, blank=True)
+    is_verified = models.BooleanField(default=False)
+    verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['user__username', 'kind', '-created_at']
+
+    def __str__(self):
+        return self.label
+
+    @property
+    def label(self):
+        return self.title or self.get_kind_display()
+
+
+class Vendor(models.Model):
+    name = models.CharField(max_length=120, unique=True)
+    contact_person = models.CharField(max_length=100, blank=True)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=30, blank=True)
+    notes = models.CharField(max_length=300, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class PurchaseRequest(models.Model):
+    CATEGORY_CHOICES = [
+        ('equipment', 'Equipment'), ('software', 'Software'), ('stationery', 'Stationery'),
+        ('furniture', 'Furniture'), ('services', 'Services'), ('other', 'Other'),
+    ]
+    STATUS_CHOICES = [
+        ('pending', 'Waiting for manager'), ('review', 'Waiting for finance'), ('approved', 'Approved'),
+        ('rejected', 'Rejected'), ('ordered', 'Ordered'), ('received', 'Received'), ('cancelled', 'Cancelled'),
+    ]
+    requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='purchase_requests')
+    title = models.CharField(max_length=150)
+    category = models.CharField(max_length=12, choices=CATEGORY_CHOICES, default='equipment')
+    description = models.CharField(max_length=500, blank=True)
+    quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(100000)])
+    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True, related_name='purchases')
+    vendor = models.ForeignKey(Vendor, on_delete=models.SET_NULL, null=True, blank=True, related_name='purchases')
+    needed_by = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    level1_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    level2_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    review_note = models.CharField(max_length=300, blank=True)
+    po_number = models.CharField(max_length=40, blank=True)
+    ordered_on = models.DateField(null=True, blank=True)
+    received_on = models.DateField(null=True, blank=True)
+    actual_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    expense = models.ForeignKey(Expense, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def total(self):
+        return self.unit_cost * self.quantity

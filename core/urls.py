@@ -3,7 +3,8 @@ from django.urls import path, reverse_lazy
 
 from . import (
     views, views_api, views_attendance, views_budget, views_company, views_facilities, views_hr, views_misc,
-    views_office, views_projects, views_reports, views_requests, views_talent, views_work, views_workplace,
+    views_money, views_office, views_projects, views_purchase, views_reports, views_requests, views_talent, views_vault,
+    views_work, views_workplace,
 )
 
 urlpatterns = [
@@ -161,6 +162,33 @@ urlpatterns = [
     path('hr/exits/<int:pk>/accept/', views_requests.exit_decide, {'decision': 'accepted'}, name='exit_accept'),
     path('hr/exits/<int:pk>/reject/', views_requests.exit_decide, {'decision': 'rejected'}, name='exit_reject'),
     path('hr/exits/<int:pk>/complete/', views_requests.exit_complete, name='exit_complete'),
+    # Salary advances
+    path('advances/', views_money.advance_list, name='advance_list'),
+    path('advances/add/', views_money.advance_add, name='advance_add'),
+    path('advances/<int:pk>/approve/', views_money.advance_approve, name='advance_approve'),
+    path('advances/<int:pk>/reject/', views_money.advance_reject, name='advance_reject'),
+    path('advances/<int:pk>/close/', views_money.advance_close, name='advance_close'),
+    path('advances/<int:pk>/cancel/', views_money.advance_cancel, name='advance_cancel'),
+    # Employee documents (private)
+    path('me/documents/', views_vault.vault_me, name='vault_me'),
+    path('me/documents/add/', views_vault.vault_add, name='vault_add'),
+    path('vault/<int:pk>/download/', views_vault.vault_download, name='vault_download'),
+    path('vault/<int:pk>/delete/', views_vault.vault_delete, name='vault_delete'),
+    path('hr/vault/', views_vault.vault_overview, name='vault_overview'),
+    path('hr/vault/<int:user_id>/', views_vault.vault_person, name='vault_person'),
+    path('hr/vault/<int:user_id>/add/', views_vault.vault_person_add, name='vault_person_add'),
+    path('hr/vault/doc/<int:pk>/verify/', views_vault.vault_verify, name='vault_verify'),
+    # Purchase requests and vendors
+    path('purchases/', views_purchase.purchase_list, name='purchase_list'),
+    path('purchases/add/', views_purchase.purchase_add, name='purchase_add'),
+    path('purchases/<int:pk>/approve/', views_purchase.purchase_approve, name='purchase_approve'),
+    path('purchases/<int:pk>/reject/', views_purchase.purchase_reject, name='purchase_reject'),
+    path('purchases/<int:pk>/cancel/', views_purchase.purchase_cancel, name='purchase_cancel'),
+    path('purchases/<int:pk>/order/', views_purchase.purchase_order, name='purchase_order'),
+    path('purchases/<int:pk>/receive/', views_purchase.purchase_receive, name='purchase_receive'),
+    path('hr/vendors/', views_purchase.vendor_list, name='vendor_list'),
+    path('hr/vendors/add/', views_purchase.vendor_add, name='vendor_add'),
+    path('hr/vendors/<int:pk>/edit/', views_purchase.vendor_edit, name='vendor_edit'),
     # People, holidays, payslips (sabke liye)
     path('people/', views_hr.people, name='people'),
     path('people/org/', views_hr.org_chart, name='org_chart'),

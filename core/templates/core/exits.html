@@ -17,7 +17,7 @@
         <tr>
             <td>{{ r.user.get_full_name|default:r.user.username }}{% if r.reason %}<div class="task-meta"><span class="muted">{{ r.reason }}</span></div>{% endif %}</td>
             <td class="nowrap">Submitted {{ r.submitted_on|date:"d M" }}<div class="task-meta"><span class="muted">Proposed {{ r.proposed_last_day|date:"d M Y" }}</span></div>{% if r.last_working_day %}<div class="task-meta"><strong>Last day {{ r.last_working_day|date:"d M Y" }}</strong></div>{% endif %}</td>
-            <td>{{ r.assets }} asset{{ r.assets|pluralize }}<div class="task-meta"><span class="muted">{{ r.open_tasks }} open task{{ r.open_tasks|pluralize }}</span></div></td>
+            <td>{{ r.assets }} asset{{ r.assets|pluralize }}<div class="task-meta"><span class="muted">{{ r.open_tasks }} open task{{ r.open_tasks|pluralize }}</span></div>{% if r.advance_balance %}<div class="task-meta"><span class="overdue">Advance balance {{ currency }}{{ r.advance_balance|floatformat:"2g" }}</span></div>{% endif %}</td>
             <td>{{ r.get_status_display }}</td>
             <td>
                 {% if r.own %}

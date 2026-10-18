@@ -1,5 +1,6 @@
 """Reimbursement claims, attendance requests (regularize/WFH) aur resignation/exit."""
 import datetime
+from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -11,12 +12,13 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from .advances import balance
 from .checklists import start_checklist
 from .forms_office import (
     AttendanceRequestForm, ClaimForm, ResignationDecisionForm, ResignationForm,
 )
 from .models import (
-    AssetAssignment, Attendance, AttendanceRequest, Claim, Resignation, Task, UserProfile,
+    Advance, AssetAssignment, Attendance, AttendanceRequest, Claim, Resignation, Task, UserProfile,
 )
 from .permissions import hr_required, is_hr, is_manager, role_of
 from .services import display_name, notify, notify_many
@@ -310,6 +312,7 @@ def exit_list(request):
     rows = []
     for item in active:
         item.assets = AssetAssignment.objects.filter(user=item.user, returned_on__isnull=True).count()
+        item.advance_balance = sum((balance(a) for a in Advance.objects.filter(user=item.user, status='approved')), Decimal('0'))
         item.open_tasks = Task.objects.filter(assigned_to=item.user).exclude(status='Completed').count()
         item.ready = item.status == 'accepted' and item.last_working_day and item.last_working_day <= today
         item.own = item.user_id == request.user.id

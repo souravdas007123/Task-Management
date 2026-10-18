@@ -34,6 +34,7 @@ services:
         condition: service_healthy
     volumes:
       - media:/app/media
+      - private:/app/private
       - static:/app/staticfiles
 
   nginx:
@@ -51,4 +52,5 @@ services:
 volumes:
   dbdata:
   media:
+  private:
   static:

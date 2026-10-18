@@ -151,9 +151,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Employee ke private documents (PAN, Aadhaar...). MEDIA_ROOT ke bahar, web server se seedha serve nahi hote.
+PRIVATE_ROOT = os.environ.get('DJANGO_PRIVATE_ROOT', os.path.join(BASE_DIR, 'private'))
 
 # Budget aur expenses mein dikhne wala currency symbol (DJANGO_CURRENCY_SYMBOL se badlo, e.g. "$")
 CURRENCY_SYMBOL = os.environ.get('DJANGO_CURRENCY_SYMBOL', '₹')
+
+# Is amount se upar ki purchase request ko manager ke baad HR/finance ki doosri approval bhi chahiye
+PURCHASE_APPROVAL_LIMIT = os.environ.get('DJANGO_PURCHASE_LIMIT', '10000')
+# Salary advance zyada se zyada itne mahine ki gross salary tak
+ADVANCE_MAX_MONTHS = int(os.environ.get('DJANGO_ADVANCE_MAX_MONTHS', '3'))
 
 # Attendance: office kitne baje shuru hota hai, kitni der tak late nahi maana jata, aur din ke ghante
 ATTENDANCE_START = os.environ.get('DJANGO_WORK_START', '09:30')

@@ -8,6 +8,7 @@
     </div>
     <div class="head-actions">
         <a href="{% url 'payroll' %}" class="btn btn-primary">Payroll</a>
+        <a href="{% url 'advance_list' %}" class="btn btn-ghost">Advances</a>
         <a href="{% url 'attendance_team' %}" class="btn btn-ghost">Attendance</a>
         <a href="{% url 'job_list' %}" class="btn btn-ghost">Recruitment</a>
         <a href="{% url 'review_home' %}" class="btn btn-ghost">Reviews</a>
@@ -43,6 +44,7 @@
                     <td class="row-actions">
                         <a href="{% url 'employee_edit' e.pk %}" class="btn btn-ghost btn-sm">Details</a>
                         <a href="{% url 'salary_history' e.pk %}" class="btn btn-ghost btn-sm">Salary</a>
+                        <a href="{% url 'vault_person' e.pk %}" class="btn btn-ghost btn-sm">Documents</a>
                     </td>
                 </tr>
                 {% endfor %}

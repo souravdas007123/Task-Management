@@ -5,6 +5,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from .advances import attach_advances
 from .budget import money
 from .hr import month_bounds, policies, unpaid_days_in_month, working_days
 from .models import Claim, Payslip, SalaryStructure
@@ -75,6 +76,7 @@ def generate_month(users, year, month, generated_by):
         with transaction.atomic():
             slip = Payslip.objects.create(user=user, year=year, month=month, generated_by=generated_by, **values)
             attach_claims(slip)
+            attach_advances(slip)
         created += 1
     return created, skipped
 
@@ -89,6 +91,7 @@ def recalculate(payslip):
             setattr(payslip, key, value)
         payslip.save(update_fields=list(values))
         attach_claims(payslip)
+        attach_advances(payslip)
     return True
 
 
