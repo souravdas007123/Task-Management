@@ -1,0 +1,225 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ task.title }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ task.title }}</h1>
+        <p class="page-sub">
+            Created {{ task.created_at|date:"d M Y" }}{% if task.created_by %} by {{ task.created_by.username }}{% endif %}{% if task.project %} in <a href="{% url 'dashboard' %}?project={{ task.project.pk }}">{{ task.project.name }}</a>{% endif %}
+        </p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'dashboard' %}" class="btn btn-ghost">Back</a>
+        {% if can_edit %}<a href="{% url 'update_task' task.pk %}" class="btn btn-primary">Edit</a>{% endif %}
+        {% if can_delete %}<a href="{% url 'delete_task' task.pk %}" class="btn btn-danger">Delete</a>{% endif %}
+    </div>
+</div>
+
+<div class="detail-grid">
+    <div class="detail-main">
+        <section class="card">
+            <h2 class="card-title">Description</h2>
+            <p class="prose">{{ task.description|linebreaksbr }}</p>
+            {% if task.issue_image %}
+            <a href="{{ task.issue_image.url }}" target="_blank" rel="noopener"><img class="issue-img" src="{{ task.issue_image.url }}" alt="Issue image for {{ task.title }}"></a>
+            {% endif %}
+        </section>
+
+        <section class="card" id="checklist" aria-labelledby="checklist-title">
+            <div class="card-title-row">
+                <h2 class="card-title" id="checklist-title">Checklist</h2>
+                {% if checklist %}<span class="muted">{{ checklist_done }} of {{ checklist|length }} done</span>{% endif %}
+            </div>
+            {% if checklist %}
+            <ul class="checklist">
+                {% for item in checklist %}
+                <li class="{% if item.is_done %}done{% endif %}">
+                    {% if can_edit %}
+                    <form method="POST" action="{% url 'toggle_checklist_item' item.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="check-btn" aria-label="{% if item.is_done %}Mark as not done{% else %}Mark as done{% endif %}: {{ item.text }}">
+                            {% if item.is_done %}<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>{% endif %}
+                        </button>
+                    </form>
+                    {% else %}
+                    <span class="check-btn static">{% if item.is_done %}<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>{% endif %}</span>
+                    {% endif %}
+                    <span class="check-text">{{ item.text }}</span>
+                    {% if can_edit %}
+                    <form method="POST" action="{% url 'delete_checklist_item' item.pk %}" class="check-remove">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-icon" aria-label="Remove {{ item.text }}" title="Remove">&times;</button>
+                    </form>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="muted">No checklist items. Break the work into steps and progress updates by itself.</p>
+            {% endif %}
+            {% if can_edit %}
+            <form method="POST" action="{% url 'add_checklist_item' task.pk %}" class="inline-form">
+                {% csrf_token %}
+                {{ checklist_form.text }}
+                <button type="submit" class="btn btn-ghost">Add item</button>
+            </form>
+            {% endif %}
+        </section>
+
+        <section class="card" id="comments" aria-labelledby="comments-title">
+            <h2 class="card-title" id="comments-title">Comments ({{ comments|length }})</h2>
+            {% for comment in comments %}
+            <article class="comment">
+                <span class="avatar" aria-hidden="true">{{ comment.author.username|default:"?"|slice:":1" }}</span>
+                <div class="comment-body">
+                    <div class="comment-head">
+                        <strong>{{ comment.author.username|default:"Deleted user" }}</strong>
+                        <span class="muted">{{ comment.created_at|timesince }} ago</span>
+                        {% if user_is_manager or comment.author_id == request.user.id %}
+                        <form method="POST" action="{% url 'delete_comment' comment.pk %}" class="comment-delete">
+                            {% csrf_token %}
+                            <button type="submit" class="link-btn">Delete</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    <p class="prose">{{ comment.body|linebreaksbr }}</p>
+                </div>
+            </article>
+            {% empty %}
+            <p class="muted">No comments yet. Start the discussion here.</p>
+            {% endfor %}
+
+            <form method="POST" action="{% url 'add_comment' task.pk %}" class="stack-form">
+                {% csrf_token %}
+                <label for="{{ comment_form.body.id_for_label }}" class="sr-only">Comment</label>
+                {{ comment_form.body }}
+                <button type="submit" class="btn btn-primary">Post comment</button>
+            </form>
+        </section>
+
+        <section class="card" id="files" aria-labelledby="files-title">
+            <h2 class="card-title" id="files-title">Files ({{ attachments|length }})</h2>
+            {% if attachments %}
+            <ul class="file-list">
+                {% for attachment in attachments %}
+                <li>
+                    <a href="{{ attachment.file.url }}" target="_blank" rel="noopener">{{ attachment.original_name|default:attachment.file.name }}</a>
+                    <span class="muted">{{ attachment.uploaded_by.username|default:"someone" }}, {{ attachment.uploaded_at|date:"d M Y" }}</span>
+                    {% if can_edit %}
+                    <form method="POST" action="{% url 'delete_attachment' attachment.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="link-btn">Remove</button>
+                    </form>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="muted">No files attached.</p>
+            {% endif %}
+            {% if can_edit %}
+            <form method="POST" action="{% url 'add_attachment' task.pk %}" enctype="multipart/form-data" class="inline-form">
+                {% csrf_token %}
+                {{ attachment_form.file }}
+                <button type="submit" class="btn btn-ghost">Upload</button>
+            </form>
+            <p class="help">PDF, images, Office files, text, CSV and ZIP up to 10 MB.</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <aside class="detail-side">
+        <section class="card">
+            <h2 class="card-title">Details</h2>
+            <dl class="facts">
+                <dt>Status</dt>
+                <dd><span class="pill"><span class="dot c-{{ task.status_css }}"></span>{{ task.status }}</span></dd>
+                <dt>Priority</dt>
+                <dd><span class="pill"><span class="dot p-{{ task.priority_css }}"></span>{{ task.priority }}</span></dd>
+                <dt>Assigned to</dt>
+                <dd><div class="assignee"><span class="avatar" aria-hidden="true">{{ task.assigned_to.username|slice:":1" }}</span>{{ task.assigned_to.username }}</div></dd>
+                <dt>Due date</dt>
+                <dd>
+                    {% if task.due_date %}<span class="{% if task.is_overdue %}overdue{% endif %}">{{ task.due_date|date:"d M Y" }}</span>{% if task.is_overdue %} <span class="overdue-tag">Overdue</span>{% endif %}{% else %}<span class="muted">Not set</span>{% endif %}
+                </dd>
+                <dt>Repeats</dt>
+                <dd>{{ task.get_recurrence_display }}</dd>
+                {% if task.completed_at %}
+                <dt>Completed</dt>
+                <dd>{{ task.completed_at|date:"d M Y" }}</dd>
+                {% endif %}
+                <dt>Labels</dt>
+                <dd>
+                    {% for label in task.labels.all %}<span class="chip"><span class="dot" style="background: {{ label.color }}"></span>{{ label.name }}</span>{% empty %}<span class="muted">None</span>{% endfor %}
+                </dd>
+                <dt>Progress</dt>
+                <dd>
+                    <div class="progress-cell">
+                        <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ task.progress }}" aria-label="Progress"><span style="width: {{ task.progress }}%;"></span></div>
+                        <small>{{ task.progress }}%</small>
+                    </div>
+                </dd>
+            </dl>
+        </section>
+
+        <section class="card" id="time" aria-labelledby="time-title">
+            <div class="card-title-row">
+                <h2 class="card-title" id="time-title">Time logged</h2>
+                <strong>{{ total_time }}</strong>
+            </div>
+            {% if time_entries %}
+            <ul class="time-list">
+                {% for entry in time_entries %}
+                <li>
+                    <div>
+                        <strong>{{ entry.duration_display }}</strong>
+                        <span class="muted">{{ entry.user.username|default:"someone" }}, {{ entry.worked_on|date:"d M" }}</span>
+                        {% if entry.note %}<div class="muted">{{ entry.note }}</div>{% endif %}
+                    </div>
+                    {% if entry.can_delete %}
+                    <form method="POST" action="{% url 'delete_time_entry' entry.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="link-btn">Delete</button>
+                    </form>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="muted">No time logged yet.</p>
+            {% endif %}
+            {% if can_edit %}
+            <form method="POST" action="{% url 'add_time_entry' task.pk %}" class="time-form">
+                {% csrf_token %}
+                <div class="time-row">
+                    <div class="field"><label for="{{ time_form.hours.id_for_label }}">Hours</label>{{ time_form.hours }}</div>
+                    <div class="field"><label for="{{ time_form.minutes.id_for_label }}">Minutes</label>{{ time_form.minutes }}</div>
+                </div>
+                <div class="field"><label for="{{ time_form.worked_on.id_for_label }}">Date</label>{{ time_form.worked_on }}</div>
+                <div class="field">{{ time_form.note }}</div>
+                <button type="submit" class="btn btn-ghost btn-block">Log time</button>
+            </form>
+            {% endif %}
+        </section>
+
+        <section class="card" aria-labelledby="activity-title">
+            <h2 class="card-title" id="activity-title">History</h2>
+            <ol class="timeline">
+                {% for entry in activity %}
+                <li>
+                    <span class="timeline-dot" aria-hidden="true"></span>
+                    <div>
+                        <div>{{ entry.message }}</div>
+                        <div class="muted">{{ entry.actor.username|default:"System" }}, {{ entry.created_at|timesince }} ago</div>
+                    </div>
+                </li>
+                {% empty %}
+                <li><div class="muted">No history yet.</div></li>
+                {% endfor %}
+            </ol>
+        </section>
+    </aside>
+</div>
+{% endblock %}

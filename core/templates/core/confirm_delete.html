@@ -1,0 +1,21 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ page_title }}</h1>
+    </div>
+</div>
+
+<div class="card form-card">
+    <h2 class="card-title">{{ heading }}</h2>
+    <p class="muted">{{ message }}</p>
+    <form method="POST" class="form-actions">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Delete</button>
+        <a href="{{ cancel_url }}" class="btn btn-ghost">Cancel</a>
+    </form>
+</div>
+{% endblock %}

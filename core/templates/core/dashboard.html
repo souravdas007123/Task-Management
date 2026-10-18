@@ -1,14 +1,16 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}{% if mine %}My tasks{% else %}Dashboard{% endif %}{% endblock %}
 
 {% block content %}
 <div class="page-head">
     <div>
-        <h1>Dashboard</h1>
-        <p class="page-sub">{{ total_tasks }} task{{ total_tasks|pluralize }} across the team</p>
+        <h1>{% if mine %}My tasks{% else %}Dashboard{% endif %}</h1>
+        <p class="page-sub">
+            {{ total_tasks }} task{{ total_tasks|pluralize }}{% if mine %} assigned to you{% else %} across the team{% endif %}{% if current_project %} in {{ current_project.name }}{% endif %}
+        </p>
     </div>
-    <a href="{% url 'add_task' %}" class="btn btn-primary">Add task</a>
+    <a href="{% url 'add_task' %}{% if current_project %}?project={{ current_project.pk }}{% endif %}" class="btn btn-primary">Add task</a>
 </div>
 
 <section class="card" aria-labelledby="breakdown-title">
@@ -38,7 +40,7 @@
 
     <div class="overall">
         <div class="overall-row">
-            <span class="muted">Overall progress</span>
+            <span class="muted">Overall progress{% if overdue_count %}, <a href="?{% if mine %}mine=1&amp;{% endif %}{% if current_project %}project={{ current_project.pk }}&amp;{% endif %}overdue=1" class="overdue-link">{{ overdue_count }} overdue</a>{% endif %}</span>
             <strong>{{ overall_progress }}%</strong>
         </div>
         <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ overall_progress }}" aria-label="Overall progress">
@@ -49,9 +51,39 @@
 
 <section class="card" aria-labelledby="tasks-title">
     <div class="card-title-row">
-        <h2 class="card-title" id="tasks-title">All tasks</h2>
-        <a href="{% url 'task_report' %}" class="btn btn-ghost btn-sm">View reports</a>
+        <h2 class="card-title" id="tasks-title">{% if filters_active %}Matching tasks{% else %}All tasks{% endif %}</h2>
+        <span class="muted">{{ page_obj.paginator.count }} found</span>
     </div>
+
+    <form method="GET" class="filter-bar" role="search">
+        {% if mine %}<input type="hidden" name="mine" value="1">{% endif %}
+        {% if current.project %}<input type="hidden" name="project" value="{{ current.project }}">{% endif %}
+        <input type="search" name="q" value="{{ current.q }}" class="form-control grow" placeholder="Search title, description or person" aria-label="Search tasks">
+        <select name="status" class="form-control" aria-label="Status">
+            <option value="">Any status</option>
+            {% for value, label in status_choices %}<option value="{{ value }}" {% if current.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <select name="priority" class="form-control" aria-label="Priority">
+            <option value="">Any priority</option>
+            {% for value, label in priority_choices %}<option value="{{ value }}" {% if current.priority == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        {% if not mine %}
+        <select name="assignee" class="form-control" aria-label="Assigned to">
+            <option value="">Anyone</option>
+            {% for person in users %}<option value="{{ person.pk }}" {% if current.assignee == person.pk|stringformat:'d' %}selected{% endif %}>{{ person.username }}</option>{% endfor %}
+        </select>
+        {% endif %}
+        <select name="label" class="form-control" aria-label="Label">
+            <option value="">Any label</option>
+            {% for label in labels %}<option value="{{ label.pk }}" {% if current.label == label.pk|stringformat:'d' %}selected{% endif %}>{{ label.name }}</option>{% endfor %}
+        </select>
+        <select name="sort" class="form-control" aria-label="Sort by">
+            {% for value, label in sort_choices %}<option value="{{ value }}" {% if current.sort == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <label class="check-inline"><input type="checkbox" name="overdue" value="1" {% if current.overdue == '1' %}checked{% endif %}> Overdue only</label>
+        <button type="submit" class="btn btn-primary">Apply</button>
+        {% if filters_active or current.sort %}<a href="{% url 'dashboard' %}{% if mine %}?mine=1{% elif current.project %}?project={{ current.project }}{% endif %}" class="btn btn-ghost">Clear</a>{% endif %}
+    </form>
 
     {% if tasks %}
     <div class="table-wrap">
@@ -62,7 +94,7 @@
                     <th scope="col">Assigned to</th>
                     <th scope="col">Priority</th>
                     <th scope="col">Status</th>
-                    <th scope="col">Image</th>
+                    <th scope="col">Due</th>
                     <th scope="col">Progress</th>
                     <th scope="col"><span class="sr-only">Actions</span></th>
                 </tr>
@@ -71,8 +103,12 @@
                 {% for task in tasks %}
                 <tr>
                     <td>
-                        <div class="task-title">{{ task.title }}</div>
-                        <div class="task-desc">{{ task.description|truncatechars:70 }}</div>
+                        <a class="task-title" href="{% url 'task_detail' task.id %}">{{ task.title }}</a>
+                        <div class="task-meta">
+                            {% if task.project %}<span class="muted">{{ task.project.name }}</span>{% endif %}
+                            {% for label in task.labels.all %}<span class="chip"><span class="dot" style="background: {{ label.color }}"></span>{{ label.name }}</span>{% endfor %}
+                            {% if task.issue_image %}<a href="{{ task.issue_image.url }}" target="_blank" rel="noopener" class="muted">image</a>{% endif %}
+                        </div>
                     </td>
                     <td>
                         <div class="assignee">
@@ -81,25 +117,16 @@
                         </div>
                     </td>
                     <td>
-                        <span class="pill">
-                            <span class="dot {% if task.priority == 'High' %}p-high{% elif task.priority == 'Medium' %}p-medium{% else %}p-low{% endif %}"></span>
-                            {{ task.priority }}
-                        </span>
+                        <span class="pill"><span class="dot p-{{ task.priority_css }}"></span>{{ task.priority }}</span>
                     </td>
                     <td>
-                        <span class="pill">
-                            <span class="dot {% if task.status == 'Completed' %}c-completed{% elif task.status == 'In Progress' %}c-progress{% elif task.status == 'Pending' %}c-pending{% else %}c-hold{% endif %}"></span>
-                            {{ task.status }}
-                        </span>
+                        <span class="pill"><span class="dot c-{{ task.status_css }}"></span>{{ task.status }}</span>
                     </td>
                     <td>
-                        {% if task.issue_image %}
-                        <a href="{{ task.issue_image.url }}" target="_blank" rel="noopener">
-                            <img class="thumb" src="{{ task.issue_image.url }}" alt="Issue image for {{ task.title }}">
-                        </a>
-                        {% else %}
-                        <span class="muted">None</span>
-                        {% endif %}
+                        {% if task.due_date %}
+                            <span class="{% if task.is_overdue %}overdue{% endif %}">{{ task.due_date|date:"d M Y" }}</span>
+                            {% if task.is_overdue %}<div class="overdue-tag">Overdue</div>{% endif %}
+                        {% else %}<span class="muted">-</span>{% endif %}
                     </td>
                     <td>
                         <div class="progress-cell">
@@ -109,17 +136,35 @@
                             <small>{{ task.progress }}%</small>
                         </div>
                     </td>
-                    <td>
-                        <a href="{% url 'update_task' task.id %}" class="btn btn-ghost btn-sm">Edit</a>
+                    <td class="row-actions">
+                        <a href="{% url 'task_detail' task.id %}" class="btn btn-ghost btn-sm">Open</a>
+                        {% if task.can_edit %}<a href="{% url 'update_task' task.id %}" class="btn btn-ghost btn-sm">Edit</a>{% endif %}
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pager" aria-label="Pages">
+        {% if page_obj.has_previous %}
+        <a class="btn btn-ghost btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span class="muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a class="btn btn-ghost btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+    {% elif filters_active %}
+    <div class="empty">
+        <p>No tasks match these filters. Try removing one.</p>
+        <a href="{% url 'dashboard' %}{% if mine %}?mine=1{% endif %}" class="btn btn-ghost">Clear filters</a>
+    </div>
     {% else %}
     <div class="empty">
-        <p>No tasks yet. Add the first task to start tracking work.</p>
+        <p>{% if mine %}Nothing is assigned to you yet.{% else %}No tasks yet. Add the first task to start tracking work.{% endif %}</p>
         <a href="{% url 'add_task' %}" class="btn btn-primary">Add task</a>
     </div>
     {% endif %}

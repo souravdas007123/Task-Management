@@ -11,6 +11,7 @@
     <link href="{% static 'core/css/theme.css' %}" rel="stylesheet">
 </head>
 <body>
+{% with url_name=request.resolver_match.url_name %}
 <div class="shell">
     <aside class="sidebar">
         <a class="brand" href="{% url 'dashboard' %}">
@@ -21,23 +22,49 @@
         </a>
 
         <nav class="nav" aria-label="Main">
-            <a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>
+            <a href="{% url 'dashboard' %}" {% if url_name == 'dashboard' and not request.GET.mine %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
                 Dashboard
             </a>
-            <a href="{% url 'add_task' %}" {% if request.resolver_match.url_name == 'add_task' %}aria-current="page"{% endif %}>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                Add task
+            <a href="{% url 'dashboard' %}?mine=1" {% if url_name == 'dashboard' and request.GET.mine %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                My tasks
             </a>
-            <a href="{% url 'task_report' %}" {% if request.resolver_match.url_name == 'task_report' %}aria-current="page"{% endif %}>
+            <a href="{% url 'board' %}" {% if url_name == 'board' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="5" height="18" rx="1.5"/><rect x="10" y="3" width="5" height="11" rx="1.5"/><rect x="17" y="3" width="4" height="14" rx="1.5"/></svg>
+                Board
+            </a>
+            <a href="{% url 'task_calendar' %}" {% if url_name == 'task_calendar' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                Calendar
+            </a>
+            <a href="{% url 'project_list' %}" {% if url_name == 'project_list' or url_name == 'project_add' or url_name == 'project_edit' or url_name == 'project_delete' or url_name == 'label_list' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                Projects
+            </a>
+            <a href="{% url 'task_report' %}" {% if url_name == 'task_report' %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
                 Reports
             </a>
+            <a href="{% url 'analytics' %}" {% if url_name == 'analytics' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>
+                Analytics
+            </a>
+            <a href="{% url 'notifications' %}" {% if url_name == 'notifications' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+                Notifications
+                {% if unread_notifications_count %}<span class="badge-count" aria-label="{{ unread_notifications_count }} unread">{{ unread_notifications_count }}</span>{% endif %}
+            </a>
         </nav>
+
+        <a href="{% url 'add_task' %}" class="btn btn-primary btn-block side-add">Add task</a>
 
         <div class="sidebar-foot">
             <span class="avatar" aria-hidden="true">{{ request.user.username|slice:":1" }}</span>
-            <span class="user-name">{{ request.user.username }}</span>
+            <span class="user-meta">
+                <span class="user-name">{{ request.user.username }}</span>
+                <span class="user-role">{{ user_role|default:"member" }}</span>
+            </span>
             <form method="POST" action="{% url 'logout' %}">
                 {% csrf_token %}
                 <button type="submit" class="btn-icon" title="Log out" aria-label="Log out">
@@ -59,5 +86,7 @@
         {% block content %}{% endblock %}
     </main>
 </div>
+{% endwith %}
+{% block scripts %}{% endblock %}
 </body>
 </html>

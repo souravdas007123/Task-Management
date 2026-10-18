@@ -8,10 +8,14 @@
         <h1>Reports</h1>
         <p class="page-sub">{{ tasks|length }} task{{ tasks|length|pluralize }}{% if status_filter %} with status {{ status_filter }}{% endif %}</p>
     </div>
-    <a href="{% url 'dashboard' %}" class="btn btn-ghost">Back to dashboard</a>
+    <div class="head-actions no-print">
+        <a href="?{% if status_filter %}status={{ status_filter|urlencode }}&amp;{% endif %}export=csv" class="btn btn-ghost">Download CSV</a>
+        <button type="button" class="btn btn-ghost" onclick="window.print()">Print or save as PDF</button>
+        <a href="{% url 'analytics' %}" class="btn btn-primary">Analytics</a>
+    </div>
 </div>
 
-<nav class="filters" aria-label="Filter by status">
+<nav class="filters no-print" aria-label="Filter by status">
     <a class="filter" href="{% url 'task_report' %}" {% if not status_filter %}aria-current="true"{% endif %}>All</a>
     {% for value, label in status_choices %}
     <a class="filter" href="?status={{ value|urlencode }}" {% if value == status_filter %}aria-current="true"{% endif %}>{{ label }}</a>
@@ -25,28 +29,29 @@
             <thead>
                 <tr>
                     <th scope="col">Task</th>
+                    <th scope="col">Project</th>
                     <th scope="col">Assigned to</th>
                     <th scope="col">Status</th>
+                    <th scope="col">Priority</th>
+                    <th scope="col">Progress</th>
                     <th scope="col">Due date</th>
                 </tr>
             </thead>
             <tbody>
                 {% for task in tasks %}
                 <tr>
-                    <td class="task-title">{{ task.title }}</td>
+                    <td><a class="task-title" href="{% url 'task_detail' task.pk %}">{{ task.title }}</a></td>
+                    <td>{{ task.project.name|default:"-" }}</td>
                     <td>
                         <div class="assignee">
                             <span class="avatar" aria-hidden="true">{{ task.assigned_to.username|slice:":1" }}</span>
                             {{ task.assigned_to.username }}
                         </div>
                     </td>
-                    <td>
-                        <span class="pill">
-                            <span class="dot {% if task.status == 'Completed' %}c-completed{% elif task.status == 'In Progress' %}c-progress{% elif task.status == 'Pending' %}c-pending{% else %}c-hold{% endif %}"></span>
-                            {{ task.status }}
-                        </span>
-                    </td>
-                    <td>{{ task.due_date|default:"-" }}</td>
+                    <td><span class="pill"><span class="dot c-{{ task.status_css }}"></span>{{ task.status }}</span></td>
+                    <td>{{ task.priority }}</td>
+                    <td>{{ task.progress }}%</td>
+                    <td>{% if task.due_date %}<span class="{% if task.is_overdue %}overdue{% endif %}">{{ task.due_date|date:"d M Y" }}</span>{% else %}-{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>

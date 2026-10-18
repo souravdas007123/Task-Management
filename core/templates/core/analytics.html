@@ -1,0 +1,97 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Analytics</h1>
+        <p class="page-sub">How work is moving across the team.</p>
+    </div>
+    <a href="{% url 'task_report' %}" class="btn btn-ghost">Back to reports</a>
+</div>
+
+<div class="stat-row">
+    <div class="card stat"><span class="muted">Tasks</span><strong>{{ total_tasks }}</strong></div>
+    <div class="card stat"><span class="muted">Overdue</span><strong class="{% if overdue_total %}overdue{% endif %}">{{ overdue_total }}</strong></div>
+    <div class="card stat"><span class="muted">Average time to complete</span><strong>{{ average_completion|default:"-" }}</strong></div>
+    <div class="card stat"><span class="muted">Time logged</span><strong>{{ total_time }}</strong></div>
+</div>
+
+<section class="card" aria-labelledby="weekly-title">
+    <h2 class="card-title" id="weekly-title">Created and completed, last 8 weeks</h2>
+    <div class="weekly" role="img" aria-label="Tasks created and completed per week">
+        {% for week in weekly %}
+        <div class="week">
+            <div class="week-bars">
+                <div class="wbar created" style="height: {{ week.created_pct }}%;" title="{{ week.created }} created"></div>
+                <div class="wbar completed" style="height: {{ week.completed_pct }}%;" title="{{ week.completed }} completed"></div>
+            </div>
+            <div class="week-label">{{ week.label }}</div>
+            <div class="week-nums muted">{{ week.created }} / {{ week.completed }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="legend-inline">
+        <span class="legend-label"><span class="swatch c-progress"></span>Created</span>
+        <span class="legend-label"><span class="swatch c-completed"></span>Completed</span>
+        <span class="muted">Week starts on Monday. Numbers show created / completed.</span>
+    </div>
+</section>
+
+<section class="card" aria-labelledby="people-title">
+    <h2 class="card-title" id="people-title">Workload by person</h2>
+    {% if people %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead>
+                <tr>
+                    <th scope="col">Person</th>
+                    <th scope="col">Open tasks</th>
+                    <th scope="col">Completed</th>
+                    <th scope="col">Overdue</th>
+                    <th scope="col">Time logged</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for person in people %}
+                <tr>
+                    <td><div class="assignee"><span class="avatar" aria-hidden="true">{{ person.username|slice:":1" }}</span>{{ person.username }}</div></td>
+                    <td>
+                        <div class="progress-cell">
+                            <div class="meter meter-sm"><span style="width: {{ person.bar }}%;"></span></div>
+                            <small>{{ person.open }}</small>
+                        </div>
+                    </td>
+                    <td>{{ person.done }}</td>
+                    <td><span class="{% if person.overdue %}overdue{% endif %}">{{ person.overdue }}</span></td>
+                    <td>{{ person.time }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="muted">No tasks yet.</p>
+    {% endif %}
+</section>
+
+<div class="two-col">
+    <section class="card" aria-labelledby="status-title">
+        <h2 class="card-title" id="status-title">By status</h2>
+        <ul class="dist">
+            {% for label, count, css in status_rows %}
+            <li><span class="legend-label"><span class="swatch c-{{ css }}"></span>{{ label }}</span><strong>{{ count }}</strong></li>
+            {% endfor %}
+        </ul>
+    </section>
+    <section class="card" aria-labelledby="priority-title">
+        <h2 class="card-title" id="priority-title">By priority</h2>
+        <ul class="dist">
+            {% for label, count, css in priority_rows %}
+            <li><span class="legend-label"><span class="swatch p-{{ css }}"></span>{{ label }}</span><strong>{{ count }}</strong></li>
+            {% endfor %}
+        </ul>
+    </section>
+</div>
+{% endblock %}
