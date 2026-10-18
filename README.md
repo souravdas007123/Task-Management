@@ -65,3 +65,16 @@ DJANGO_ALLOWED_HOSTS=example.com
 ```
 
 Run `python manage.py collectstatic` and serve `static/` and `media/` from your web server.
+
+## Work management and budget
+
+- **Estimates and start dates**: every task can have a start date and estimated hours. The task page compares the estimate with logged time.
+- **Workload** (`/workload/`): per person, open hours due in the next 7 days (plus overdue) against weekly capacity.
+- **Timeline** (`/timeline/`): 8-week Gantt-style view from start date to due date; filter by project or "only my tasks".
+- **Budget** (managers only, `/budget/`): set a budget on a project. Spent = approved expenses + labour cost (logged time x hourly rate). Managers are notified at 80% and 100%.
+- **Expenses** (`/expenses/`): anyone can submit one (optional receipt). Manager expenses are approved immediately; others wait for review. Only approved expenses count. Managers can export CSV.
+- **Hourly rate and weekly capacity** are set on each user's Profile in the admin site. Time logged by people without a rate is shown as a warning and not costed.
+- Currency symbol: environment variable `DJANGO_CURRENCY_SYMBOL` (default `₹`).
+- A project that has expenses cannot be deleted.
+
+After pulling: `python manage.py migrate` (adds migration 0009).

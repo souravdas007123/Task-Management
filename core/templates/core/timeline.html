@@ -1,0 +1,62 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Timeline{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Timeline</h1>
+        <p class="page-sub">{{ window_start|date:"d M Y" }} to {{ window_end|date:"d M Y" }}. Bars run from start date to due date; a dot means a single day.</p>
+    </div>
+    <div class="head-actions">
+        <a href="?start={{ prev_start }}{% if mine %}&amp;mine=1{% endif %}{% if current_project_id %}&amp;project={{ current_project_id }}{% endif %}" class="btn btn-ghost">&larr; Earlier</a>
+        <a href="{% url 'timeline' %}{% if mine or current_project_id %}?{% if mine %}mine=1{% endif %}{% if mine and current_project_id %}&amp;{% endif %}{% if current_project_id %}project={{ current_project_id }}{% endif %}{% endif %}" class="btn btn-ghost">This week</a>
+        <a href="?start={{ next_start }}{% if mine %}&amp;mine=1{% endif %}{% if current_project_id %}&amp;project={{ current_project_id }}{% endif %}" class="btn btn-ghost">Later &rarr;</a>
+    </div>
+</div>
+
+<section class="card">
+    <form method="GET" class="filter-bar">
+        <input type="hidden" name="start" value="{{ window_start|date:'Y-m-d' }}">
+        <select name="project" class="form-control" aria-label="Project">
+            <option value="">All projects</option>
+            {% for project in projects %}<option value="{{ project.pk }}" {% if current_project_id == project.pk %}selected{% endif %}>{{ project.name }}</option>{% endfor %}
+        </select>
+        <label class="check-inline"><input type="checkbox" name="mine" value="1" {% if mine %}checked{% endif %}> Only my tasks</label>
+        <button type="submit" class="btn btn-primary">Apply</button>
+    </form>
+
+    {% if rows %}
+    <div class="gantt" role="table" aria-label="Task timeline">
+        <div class="gantt-head" role="row">
+            <div class="gantt-label" role="columnheader">Task</div>
+            <div class="gantt-track gantt-weeks" role="columnheader">
+                {% for h in header %}<span class="gantt-week" style="left: {{ h.left }}%;">{{ h.label }}</span>{% endfor %}
+            </div>
+        </div>
+        {% for r in rows %}
+        <div class="gantt-row {% if r.task.status == 'Completed' %}is-done{% endif %}" role="row">
+            <div class="gantt-label" role="cell">
+                <a href="{% url 'task_detail' r.task.pk %}">{{ r.task.title }}</a>
+                <small class="muted">{{ r.task.assigned_to.username }}{% if r.task.project %} &middot; {{ r.task.project.name }}{% endif %}</small>
+            </div>
+            <div class="gantt-track" role="cell">
+                {% for h in header %}<span class="gantt-gridline" style="left: {{ h.left }}%;"></span>{% endfor %}
+                {% if today_left is not None %}<span class="gantt-today" style="left: {{ today_left }}%;"></span>{% endif %}
+                <a href="{% url 'task_detail' r.task.pk %}"
+                   class="gantt-bar p-{{ r.task.priority_css }} {% if r.is_marker %}is-marker{% endif %} {% if r.cut_left %}cut-left{% endif %} {% if r.cut_right %}cut-right{% endif %}"
+                   style="left: {{ r.left }}%; width: {{ r.width }}%;"
+                   title="{{ r.task.title }}: {% if r.start != r.end %}{{ r.start|date:'d M' }} to {% endif %}{{ r.end|date:'d M' }}">
+                    <span class="sr-only">{{ r.task.title }}</span>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% if truncated %}<p class="help">Showing the first {{ limit }} tasks. Use the project filter to narrow this down.</p>{% endif %}
+    {% else %}
+    <div class="empty"><p>No dated tasks in this window. Give tasks a due date (and optionally a start date) to see them here.</p></div>
+    {% endif %}
+    {% if undated %}<p class="help">{{ undated }} task{{ undated|pluralize }} in this view have no due date and are not shown.</p>{% endif %}
+</section>
+{% endblock %}

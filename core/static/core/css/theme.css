@@ -1580,3 +1580,52 @@ table.cal td.today {
         transition: none !important;
     }
 }
+
+/* ---------- Budget, expenses, workload, timeline ---------- */
+
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.data th.num { text-align: right; }
+.nowrap { white-space: nowrap; }
+form.inline { display: inline; margin: 0; }
+
+.stat-row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.sub-title { font-size: 13px; color: var(--muted); font-weight: 600; margin: 16px 0 6px; }
+.plain-list { list-style: none; margin: 0; padding: 0; }
+.plain-list li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-soft); }
+.plain-list li:last-child { border-bottom: 0; }
+
+.notice { padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; border: 1px solid var(--border); background: var(--surface-2); }
+.notice-warn { border-color: var(--st-pending); background: rgba(242, 193, 78, 0.10); }
+.notice-danger { border-color: var(--danger); background: rgba(255, 122, 138, 0.10); }
+
+.meter-warning > span { background: var(--st-pending); }
+.meter-over > span, .meter-over.meter > span { background: var(--danger); }
+.meter-ok > span { background: var(--st-completed); }
+.load-ok > span { background: var(--st-completed); }
+.load-high > span { background: var(--st-pending); }
+.load-over > span { background: var(--danger); }
+.meter-over { box-shadow: 0 0 0 1px rgba(255, 122, 138, 0.35); }
+
+/* Gantt timeline */
+.gantt { margin-top: 12px; overflow-x: auto; }
+.gantt-head, .gantt-row { display: grid; grid-template-columns: 220px minmax(520px, 1fr); border-bottom: 1px solid var(--border-soft); }
+.gantt-head { color: var(--muted); font-size: 12px; }
+.gantt-label { padding: 10px 12px 10px 0; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gantt-label a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.gantt-track { position: relative; min-height: 44px; }
+.gantt-weeks { min-height: 32px; }
+.gantt-week { position: absolute; top: 8px; transform: translateX(4px); white-space: nowrap; }
+.gantt-gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border-soft); }
+.gantt-today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: .7; z-index: 2; }
+.gantt-bar { position: absolute; top: 12px; height: 20px; min-width: 8px; border-radius: 6px; z-index: 1; opacity: .9; }
+.gantt-bar:hover, .gantt-bar:focus-visible { opacity: 1; outline: 2px solid var(--accent); outline-offset: 1px; }
+.gantt-bar.is-marker { min-width: 12px; border-radius: 50%; height: 14px; top: 15px; }
+.gantt-bar.cut-left { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.gantt-bar.cut-right { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.gantt-row.is-done { opacity: .5; }
+
+@media (max-width: 760px) {
+    .stat-row-3 { grid-template-columns: 1fr; }
+    .gantt-head, .gantt-row { grid-template-columns: 150px minmax(520px, 1fr); }
+}

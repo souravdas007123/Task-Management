@@ -10,6 +10,10 @@ ALLOWED_ATTACHMENT_EXTENSIONS = [
 ]
 
 
+# Receipts: sirf PDF ya image
+ALLOWED_RECEIPT_EXTENSIONS = ['pdf', 'png', 'jpg', 'jpeg', 'webp']
+
+
 def validate_file_size(uploaded_file):
     if uploaded_file.size > MAX_UPLOAD_MB * 1024 * 1024:
         raise ValidationError(f'File is too large. The maximum size is {MAX_UPLOAD_MB} MB.')

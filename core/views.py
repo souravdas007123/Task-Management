@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from .budget import refresh_budget_alert
 from .filters import SORT_CHOICES, filter_tasks, parse_int, scope_tasks, sort_tasks
 from .forms import AttachmentForm, ChecklistItemForm, CommentForm, TaskForm, TimeEntryForm
 from .models import Attachment, ChecklistItem, Comment, Label, Project, Task, TimeEntry
@@ -192,7 +193,16 @@ def task_detail(request, pk):
     for entry in time_entries:
         entry.can_delete = manager or entry.user_id == request.user.id
 
+    # Estimate vs actual
+    logged_minutes = sum(entry.minutes for entry in time_entries)
+    effort = None
+    if task.estimated_hours:
+        estimated_minutes = task.estimated_hours * 60
+        percent = int(logged_minutes * 100 / estimated_minutes)
+        effort = {'percent': percent, 'bar': min(percent, 100), 'over': logged_minutes > estimated_minutes}
+
     context = {
+        'effort': effort,
         'task': task,
         'can_edit': can_edit,
         'can_delete': can_delete_task(request.user, task),
@@ -338,6 +348,8 @@ def add_time_entry(request, pk):
     if form.is_valid():
         entry = form.save(task, request.user)
         log_activity(task, request.user, f'Logged {entry.duration_display} of work')
+        if task.project_id:  # labour cost badhi, budget alert check karo
+            refresh_budget_alert(task.project, request)
         messages.success(request, 'Time logged.')
     else:
         messages.error(request, form_error_text(form))
@@ -352,5 +364,7 @@ def delete_time_entry(request, pk):
     if not (is_manager(request.user) or entry.user_id == request.user.id):
         raise PermissionDenied
     entry.delete()
+    if task.project_id:
+        refresh_budget_alert(task.project, request)
     messages.success(request, 'Time entry deleted.')
     return redirect(task.get_absolute_url() + '#time')

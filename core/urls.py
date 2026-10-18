@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from . import views, views_api, views_misc, views_projects, views_reports
+from . import views, views_api, views_budget, views_misc, views_projects, views_reports, views_work
 
 urlpatterns = [
     # Tasks
@@ -35,6 +35,20 @@ urlpatterns = [
     path('labels/', views_projects.label_list, name='label_list'),
     path('labels/add/', views_projects.label_add, name='label_add'),
     path('labels/<int:pk>/delete/', views_projects.label_delete, name='label_delete'),
+
+    # Work management
+    path('workload/', views_work.workload, name='workload'),
+    path('timeline/', views_work.timeline, name='timeline'),
+
+    # Budget aur expenses
+    path('budget/', views_budget.budget_overview, name='budget_overview'),
+    path('budget/project/<int:pk>/', views_budget.project_budget, name='project_budget'),
+    path('expenses/', views_budget.expense_list, name='expense_list'),
+    path('expenses/add/', views_budget.expense_add, name='expense_add'),
+    path('expenses/export/', views_budget.expense_export, name='expense_export'),
+    path('expenses/<int:pk>/approve/', views_budget.expense_approve, name='expense_approve'),
+    path('expenses/<int:pk>/reject/', views_budget.expense_reject, name='expense_reject'),
+    path('expenses/<int:pk>/delete/', views_budget.expense_delete, name='expense_delete'),
 
     # Reports
     path('report/', views_reports.task_report, name='task_report'),

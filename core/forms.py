@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator
 from django.utils import timezone
 
-from .models import Attachment, ChecklistItem, Comment, Label, Project, Task, TimeEntry
+from .models import Attachment, ChecklistItem, Comment, Expense, Label, Project, Task, TimeEntry
 from .validators import ALLOWED_ATTACHMENT_EXTENSIONS, validate_file_size
 
 
@@ -12,7 +12,7 @@ class TaskForm(forms.ModelForm):
         model = Task
         fields = [
             'title', 'description', 'assigned_to', 'project', 'labels', 'issue_image',
-            'status', 'priority', 'progress', 'due_date', 'recurrence',
+            'status', 'priority', 'progress', 'start_date', 'due_date', 'estimated_hours', 'recurrence',
         ]
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
@@ -24,11 +24,15 @@ class TaskForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': 'form-control'}),
             'priority': forms.Select(attrs={'class': 'form-control'}),
             'progress': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'max': '100'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'estimated_hours': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.25'}),
             'recurrence': forms.Select(attrs={'class': 'form-control'}),
         }
         help_texts = {
             'recurrence': 'When a repeating task is completed, the next one is created automatically.',
+            'start_date': 'Optional. Used for the timeline.',
+            'estimated_hours': 'How many hours you expect this to take. Used for workload planning.',
         }
 
     def __init__(self, *args, **kwargs):
@@ -49,15 +53,60 @@ class TaskForm(forms.ModelForm):
             return value
         return self.instance.recurrence if self.instance.pk else 'none'
 
+    def clean(self):
+        cleaned = super().clean()
+        start = cleaned.get('start_date')
+        due = cleaned.get('due_date')
+        if start and due and start > due:
+            self.add_error('due_date', 'The due date cannot be before the start date.')
+        return cleaned
+
 
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
-        fields = ['name', 'description']
+        fields = ['name', 'description', 'budget']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'budget': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01'}),
         }
+
+
+class ExpenseForm(forms.ModelForm):
+    class Meta:
+        model = Expense
+        fields = ['project', 'task', 'title', 'amount', 'category', 'incurred_on', 'note', 'receipt']
+        widgets = {
+            'project': forms.Select(attrs={'class': 'form-control'}),
+            'task': forms.Select(attrs={'class': 'form-control'}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'What was it for?'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control', 'min': '0.01', 'step': '0.01'}),
+            'category': forms.Select(attrs={'class': 'form-control'}),
+            'incurred_on': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'note': forms.TextInput(attrs={'class': 'form-control'}),
+            'receipt': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        }
+        labels = {'incurred_on': 'Date of expense', 'task': 'Related task'}
+        help_texts = {
+            'task': 'Optional. Must belong to the selected project.',
+            'receipt': 'PDF or image, up to 10 MB.',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['project'].empty_label = 'Choose a project'
+        self.fields['task'].empty_label = 'No related task'
+        self.fields['task'].queryset = Task.objects.order_by('-created_at')
+        self.fields['task'].label_from_instance = lambda task: f'#{task.pk} {task.title}'
+
+    def clean(self):
+        cleaned = super().clean()
+        project = cleaned.get('project')
+        task = cleaned.get('task')
+        if project and task and task.project_id != project.pk:
+            self.add_error('task', 'This task does not belong to the selected project.')
+        return cleaned
 
 
 class LabelForm(forms.ModelForm):

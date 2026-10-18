@@ -134,6 +134,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Budget aur expenses mein dikhne wala currency symbol (DJANGO_CURRENCY_SYMBOL se badlo, e.g. "$")
+CURRENCY_SYMBOL = os.environ.get('DJANGO_CURRENCY_SYMBOL', '₹')
+
 # Email notifications. Default console backend hai: email terminal mein print hota hai, kahin bhejta nahi.
 # Real email ke liye environment variables set karo (DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend,
 # DJANGO_EMAIL_HOST, DJANGO_EMAIL_PORT, DJANGO_EMAIL_USER, DJANGO_EMAIL_PASSWORD).

@@ -1,4 +1,6 @@
 """Chhote helpers: activity log, notifications (in-app + email), status change, task snapshot/diff."""
+from decimal import Decimal
+
 from django.core.mail import send_mail
 
 from .models import ActivityLog, Notification, Task
@@ -54,7 +56,9 @@ TRACKED_FIELDS = [
     ('status', 'Status'),
     ('priority', 'Priority'),
     ('progress', 'Progress'),
+    ('start_date', 'Start date'),
     ('due_date', 'Due date'),
+    ('estimated_hours', 'Estimate'),
     ('recurrence', 'Repeat'),
     ('labels', 'Labels'),
     ('description', 'Description'),
@@ -70,7 +74,9 @@ def snapshot_task(task):
         'status': task.status,
         'priority': task.priority,
         'progress': f'{task.progress}%',
+        'start_date': task.start_date.isoformat() if task.start_date else '-',
         'due_date': task.due_date.isoformat() if task.due_date else '-',
+        'estimated_hours': f'{Decimal(task.estimated_hours).normalize():f}h' if task.estimated_hours is not None else '-',
         'recurrence': task.get_recurrence_display(),
         'labels': ', '.join(sorted(label.name for label in task.labels.all())) or '-',
         'description': task.description,

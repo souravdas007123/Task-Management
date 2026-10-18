@@ -34,14 +34,32 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="5" height="18" rx="1.5"/><rect x="10" y="3" width="5" height="11" rx="1.5"/><rect x="17" y="3" width="4" height="14" rx="1.5"/></svg>
                 Board
             </a>
+            <a href="{% url 'timeline' %}" {% if url_name == 'timeline' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h10M7 12h14M3 18h8"/></svg>
+                Timeline
+            </a>
             <a href="{% url 'task_calendar' %}" {% if url_name == 'task_calendar' %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
                 Calendar
+            </a>
+            <a href="{% url 'workload' %}" {% if url_name == 'workload' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                Workload
             </a>
             <a href="{% url 'project_list' %}" {% if url_name == 'project_list' or url_name == 'project_add' or url_name == 'project_edit' or url_name == 'project_delete' or url_name == 'label_list' %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
                 Projects
             </a>
+            <a href="{% url 'expense_list' %}" {% if url_name == 'expense_list' or url_name == 'expense_add' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12.5" r="3"/></svg>
+                Expenses
+            </a>
+            {% if user_is_manager %}
+            <a href="{% url 'budget_overview' %}" {% if url_name == 'budget_overview' or url_name == 'project_budget' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 6.5H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg>
+                Budget
+            </a>
+            {% endif %}
             <a href="{% url 'task_report' %}" {% if url_name == 'task_report' %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
                 Reports

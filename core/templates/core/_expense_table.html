@@ -1,0 +1,61 @@
+<div class="table-wrap">
+    <table class="data">
+        <thead>
+            <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Expense</th>
+                <th scope="col">Project</th>
+                <th scope="col">Category</th>
+                <th scope="col" class="num">Amount</th>
+                <th scope="col">Status</th>
+                <th scope="col">Submitted by</th>
+                <th scope="col"><span class="sr-only">Actions</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in expenses %}
+            <tr>
+                <td class="nowrap">{{ expense.incurred_on|date:"d M Y" }}</td>
+                <td>
+                    <div class="task-title">{{ expense.title }}</div>
+                    <div class="task-meta">
+                        {% if expense.task %}<a href="{% url 'task_detail' expense.task.pk %}">Task #{{ expense.task.pk }}</a>{% endif %}
+                        {% if expense.receipt %}<a href="{{ expense.receipt.url }}" target="_blank" rel="noopener">Receipt</a>{% endif %}
+                        {% if expense.note %}<span class="muted">{{ expense.note }}</span>{% endif %}
+                    </div>
+                    {% if expense.review_note %}<div class="task-meta"><span class="overdue">Rejected: {{ expense.review_note }}</span></div>{% endif %}
+                </td>
+                <td>{{ expense.project.name }}</td>
+                <td>{{ expense.get_category_display }}</td>
+                <td class="num">{{ currency }}{{ expense.amount|floatformat:"2g" }}</td>
+                <td>
+                    <span class="pill"><span class="dot {% if expense.status == 'approved' %}c-completed{% elif expense.status == 'submitted' %}c-pending{% else %}p-high{% endif %}"></span>{{ expense.get_status_display }}</span>
+                </td>
+                <td>{{ expense.submitted_by.username|default:"-" }}</td>
+                <td class="row-actions">
+                    {% if manager %}
+                        {% if expense.status != 'approved' %}
+                        <form method="POST" action="{% url 'expense_approve' expense.pk %}" class="inline">
+                            {% csrf_token %}<input type="hidden" name="next" value="{{ next_url }}">
+                            <button type="submit" class="btn btn-ghost btn-sm">Approve</button>
+                        </form>
+                        {% endif %}
+                        {% if expense.status != 'rejected' %}
+                        <form method="POST" action="{% url 'expense_reject' expense.pk %}" class="inline" onsubmit="var n = prompt('Reason for rejecting (optional)'); if (n === null) { return false; } this.note.value = n;">
+                            {% csrf_token %}<input type="hidden" name="next" value="{{ next_url }}"><input type="hidden" name="note" value="">
+                            <button type="submit" class="btn btn-ghost btn-sm">Reject</button>
+                        </form>
+                        {% endif %}
+                    {% endif %}
+                    {% if manager or expense.can_delete %}
+                    <form method="POST" action="{% url 'expense_delete' expense.pk %}" class="inline" onsubmit="return confirm('Delete this expense?');">
+                        {% csrf_token %}<input type="hidden" name="next" value="{{ next_url }}">
+                        <button type="submit" class="link-btn">Delete</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

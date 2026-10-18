@@ -25,10 +25,18 @@
             <strong>{{ project.progress }}%</strong>
         </div>
         <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ project.progress }}" aria-label="Progress for {{ project.name }}"><span style="width: {{ project.progress }}%;"></span></div>
+        {% if project.budget_info %}
+        <div class="overall-row">
+            <span class="muted">Budget {{ currency }}{{ project.budget_info.spent|floatformat:"2g" }} of {{ currency }}{{ project.budget_info.budget|floatformat:"2g" }}</span>
+            <strong class="{% if project.budget_info.state == 'over' %}overdue{% endif %}">{{ project.budget_info.percent }}%</strong>
+        </div>
+        <div class="meter meter-{{ project.budget_info.state }}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ project.budget_info.bar }}" aria-label="Budget used for {{ project.name }}"><span style="width: {{ project.budget_info.bar }}%;"></span></div>
+        {% endif %}
         <div class="project-actions">
             <a href="{% url 'dashboard' %}?project={{ project.pk }}" class="btn btn-ghost btn-sm">Tasks</a>
             <a href="{% url 'board' %}?project={{ project.pk }}" class="btn btn-ghost btn-sm">Board</a>
             {% if user_is_manager %}
+            <a href="{% url 'project_budget' project.pk %}" class="btn btn-ghost btn-sm">Budget</a>
             <a href="{% url 'project_edit' project.pk %}" class="btn btn-ghost btn-sm">Edit</a>
             <a href="{% url 'project_delete' project.pk %}" class="btn btn-ghost btn-sm">Delete</a>
             {% endif %}

@@ -140,9 +140,25 @@
                 <dd><span class="pill"><span class="dot p-{{ task.priority_css }}"></span>{{ task.priority }}</span></dd>
                 <dt>Assigned to</dt>
                 <dd><div class="assignee"><span class="avatar" aria-hidden="true">{{ task.assigned_to.username|slice:":1" }}</span>{{ task.assigned_to.username }}</div></dd>
+                {% if task.start_date %}
+                <dt>Start date</dt>
+                <dd>{{ task.start_date|date:"d M Y" }}</dd>
+                {% endif %}
                 <dt>Due date</dt>
                 <dd>
                     {% if task.due_date %}<span class="{% if task.is_overdue %}overdue{% endif %}">{{ task.due_date|date:"d M Y" }}</span>{% if task.is_overdue %} <span class="overdue-tag">Overdue</span>{% endif %}{% else %}<span class="muted">Not set</span>{% endif %}
+                </dd>
+                <dt>Estimate</dt>
+                <dd>
+                    {% if task.estimated_hours %}
+                        {{ task.estimated_hours|floatformat:"-2" }}h estimated, {{ total_time }} logged
+                        {% if effort %}
+                        <div class="meter {% if effort.over %}meter-over{% endif %}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ effort.bar }}" aria-label="Time used compared with the estimate"><span style="width: {{ effort.bar }}%;"></span></div>
+                        <small class="{% if effort.over %}overdue{% else %}muted{% endif %}">{{ effort.percent }}% of estimate used</small>
+                        {% endif %}
+                    {% else %}
+                        <span class="muted">Not set</span>
+                    {% endif %}
                 </dd>
                 <dt>Repeats</dt>
                 <dd>{{ task.get_recurrence_display }}</dd>

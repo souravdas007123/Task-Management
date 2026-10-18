@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 
 from .models import (
-    ActivityLog, Attachment, ChecklistItem, Comment, Label, Notification,
+    ActivityLog, Attachment, ChecklistItem, Comment, Expense, Label, Notification,
     Project, Task, TimeEntry, UserProfile,
 )
 
@@ -24,8 +24,15 @@ class TaskAdmin(admin.ModelAdmin):
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ['name', 'created_by', 'created_at']
+    list_display = ['name', 'budget', 'created_by', 'created_at']
     search_fields = ['name']
+
+
+@admin.register(Expense)
+class ExpenseAdmin(admin.ModelAdmin):
+    list_display = ['title', 'project', 'amount', 'category', 'status', 'submitted_by', 'incurred_on']
+    list_filter = ['status', 'category', 'project']
+    search_fields = ['title', 'note']
 
 
 @admin.register(Label)
@@ -60,7 +67,7 @@ class NotificationAdmin(admin.ModelAdmin):
 
 
 class UserProfileInline(admin.StackedInline):
-    """User edit page par hi role (admin/manager/member) set karo."""
+    """User edit page par hi role, hourly rate (labour cost ke liye) aur weekly capacity set karo."""
     model = UserProfile
     can_delete = False
 

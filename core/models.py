@@ -1,5 +1,6 @@
 import calendar
 import datetime
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.core.validators import (
@@ -12,7 +13,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
-from .validators import ALLOWED_ATTACHMENT_EXTENSIONS, validate_file_size
+from .validators import ALLOWED_ATTACHMENT_EXTENSIONS, ALLOWED_RECEIPT_EXTENSIONS, validate_file_size
 
 
 def add_months(day, months=1):
@@ -33,6 +34,17 @@ class UserProfile(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='member')
+    # Labour cost ke liye: kaam ke ek ghante ki cost. Sirf admin/manager dekhte hain.
+    hourly_rate = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(0)],
+        help_text='Cost of one hour of this person\'s work. Used to calculate labour cost from logged time.',
+    )
+    # Workload page par utilization = is hafte ka kaam / capacity
+    weekly_capacity_hours = models.PositiveSmallIntegerField(
+        default=40, validators=[MinValueValidator(1), MaxValueValidator(168)],
+        help_text='Hours of work this person can take on per week.',
+    )
 
     def __str__(self):
         return f'{self.user.username} ({self.get_role_display()})'
@@ -41,6 +53,13 @@ class UserProfile(models.Model):
 class Project(models.Model):
     name = models.CharField(max_length=120, unique=True)
     description = models.TextField(blank=True)
+    budget = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(0)],
+        help_text='Total money available for this project. Leave empty if there is no budget.',
+    )
+    # 0, 80 ya 100: budget alert kis level tak bhej chuke hain (baar-baar notification na jaye)
+    budget_alerted_level = models.PositiveSmallIntegerField(default=0, editable=False)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_projects')
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -115,7 +134,13 @@ class Task(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
 
+    start_date = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
+    # Kitne ghante lagne ka andaza (workload planning aur estimate vs actual ke liye)
+    estimated_hours = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(0)],
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True, editable=False)
 
@@ -181,6 +206,12 @@ class Task(models.Model):
             self.spawn_next_occurrence()
 
     def spawn_next_occurrence(self):
+        next_due = self.next_due_date()
+        # Start date bhi utna hi aage khiskta hai jitna due date
+        next_start = None
+        if self.start_date and self.due_date and next_due:
+            next_start = self.start_date + (next_due - self.due_date)
+
         new_task = Task.objects.create(
             title=self.title,
             description=self.description,
@@ -189,7 +220,9 @@ class Task(models.Model):
             project=self.project,
             priority=self.priority,
             recurrence=self.recurrence,
-            due_date=self.next_due_date(),
+            start_date=next_start,
+            due_date=next_due,
+            estimated_hours=self.estimated_hours,
             status='Pending',
             progress=0,
         )
@@ -307,3 +340,45 @@ class Notification(models.Model):
 
     def __str__(self):
         return self.message
+
+
+class Expense(models.Model):
+    """Project ka kharcha. Budget mein sirf 'approved' expenses ginte hain."""
+    CATEGORY_CHOICES = [
+        ('software', 'Software and tools'),
+        ('hardware', 'Hardware and equipment'),
+        ('services', 'Vendors and services'),
+        ('travel', 'Travel'),
+        ('marketing', 'Marketing'),
+        ('other', 'Other'),
+    ]
+    STATUS_CHOICES = [
+        ('submitted', 'Waiting for review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    # PROTECT: kharche ka record project delete hone par chupchap ud na jaye
+    project = models.ForeignKey(Project, on_delete=models.PROTECT, related_name='expenses')
+    task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True, related_name='expenses')
+    title = models.CharField(max_length=200)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other')
+    incurred_on = models.DateField(default=timezone.localdate)
+    note = models.CharField(max_length=300, blank=True)
+    receipt = models.FileField(
+        upload_to='receipts/', blank=True,
+        validators=[FileExtensionValidator(ALLOWED_RECEIPT_EXTENSIONS), validate_file_size],
+    )
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='submitted')
+    submitted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='expenses_submitted')
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='expenses_reviewed')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-incurred_on', '-id']
+
+    def __str__(self):
+        return f'{self.title} ({self.amount})'
