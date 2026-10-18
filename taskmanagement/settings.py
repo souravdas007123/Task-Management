@@ -21,12 +21,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-v&c@r)8xirq5k69u4lr-2no+%ks0+z34i9nr6sm90$m@jc6+r7'
+# Production mein DJANGO_SECRET_KEY environment variable zaroor set karo.
+# Local development ke liye neeche wali insecure fallback key use hoti hai.
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-v&c@r)8xirq5k69u4lr-2no+%ks0+z34i9nr6sm90$m@jc6+r7',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Default True rakha hai taaki local run pehle jaisa chale; production mein DJANGO_DEBUG=False set karo.
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
-ALLOWED_HOSTS = []
+# Production mein comma-separated hosts do, e.g. DJANGO_ALLOWED_HOSTS=example.com,www.example.com
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if h.strip()]
 
 
 # Application definition
@@ -125,3 +132,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Login settings (dashboard, add/update task, report ab login ke baad hi khulenge)
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'login'
