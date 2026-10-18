@@ -1,0 +1,6 @@
+<div class="stat-row">
+    <div class="card stat"><span class="muted">Present days</span><strong>{{ summary.present|floatformat:"-1" }}</strong></div>
+    <div class="card stat"><span class="muted">Late</span><strong class="{% if summary.late %}overdue{% endif %}">{{ summary.late }}</strong></div>
+    <div class="card stat"><span class="muted">Absent</span><strong class="{% if summary.absent %}overdue{% endif %}">{{ summary.absent }}</strong></div>
+    <div class="card stat"><span class="muted">On leave / hours</span><strong>{{ summary.leave }} / {{ summary.hours|floatformat:"-1" }}h</strong></div>
+</div>

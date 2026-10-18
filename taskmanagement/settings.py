@@ -129,7 +129,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Attendance aur due dates local samay se chalte hain. Doosre desh ke liye DJANGO_TIME_ZONE set karo.
+TIME_ZONE = os.environ.get('DJANGO_TIME_ZONE', 'Asia/Kolkata')
 
 USE_I18N = True
 
@@ -153,6 +154,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Budget aur expenses mein dikhne wala currency symbol (DJANGO_CURRENCY_SYMBOL se badlo, e.g. "$")
 CURRENCY_SYMBOL = os.environ.get('DJANGO_CURRENCY_SYMBOL', '₹')
+
+# Attendance: office kitne baje shuru hota hai, kitni der tak late nahi maana jata, aur din ke ghante
+ATTENDANCE_START = os.environ.get('DJANGO_WORK_START', '09:30')
+ATTENDANCE_GRACE_MINUTES = int(os.environ.get('DJANGO_WORK_GRACE_MINUTES', '15'))
+ATTENDANCE_FULL_DAY_HOURS = float(os.environ.get('DJANGO_FULL_DAY_HOURS', '8'))
+ATTENDANCE_HALF_DAY_HOURS = float(os.environ.get('DJANGO_HALF_DAY_HOURS', '4'))
 
 # Email notifications. Default console backend hai: email terminal mein print hota hai, kahin bhejta nahi.
 # Real email ke liye environment variables set karo (DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend,

@@ -571,3 +571,139 @@ class Payslip(models.Model):
     @property
     def period(self):
         return datetime.date(self.year, self.month, 1)
+
+
+class Attendance(models.Model):
+    """Ek din ka ek check-in/check-out. date = check-in ki local date."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='attendance')
+    date = models.DateField()
+    check_in = models.DateTimeField()
+    check_out = models.DateTimeField(null=True, blank=True)
+    note = models.CharField(max_length=200, blank=True)
+    edited_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+
+    class Meta:
+        ordering = ['-date']
+        constraints = [models.UniqueConstraint(fields=['user', 'date'], name='one_attendance_per_day')]
+
+    def __str__(self):
+        return f'{self.user_id} {self.date}'
+
+    @property
+    def hours(self):
+        if not self.check_out:
+            return None
+        return max((self.check_out - self.check_in).total_seconds(), 0) / 3600
+
+
+class Announcement(models.Model):
+    title = models.CharField(max_length=150)
+    body = models.TextField(max_length=3000)
+    is_pinned = models.BooleanField(default=False)
+    expires_on = models.DateField(null=True, blank=True, help_text='Optional. Hidden from this date onwards.')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='announcements')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-is_pinned', '-created_at', '-id']
+
+    def __str__(self):
+        return self.title
+
+
+class Asset(models.Model):
+    CATEGORY_CHOICES = [
+        ('laptop', 'Laptop'), ('phone', 'Phone'), ('monitor', 'Monitor'),
+        ('accessory', 'Accessory'), ('furniture', 'Furniture'), ('other', 'Other'),
+    ]
+    STATUS_CHOICES = [
+        ('available', 'Available'), ('assigned', 'Assigned'), ('repair', 'In repair'), ('retired', 'Retired'),
+    ]
+
+    name = models.CharField(max_length=120)
+    asset_tag = models.CharField(max_length=40, unique=True)
+    category = models.CharField(max_length=12, choices=CATEGORY_CHOICES, default='laptop')
+    serial_number = models.CharField(max_length=80, blank=True)
+    purchase_date = models.DateField(null=True, blank=True)
+    purchase_cost = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)])
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='available')
+    notes = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['asset_tag']
+
+    def __str__(self):
+        return f'{self.asset_tag} {self.name}'
+
+    @property
+    def current_assignment(self):
+        return self.assignments.filter(returned_on__isnull=True).select_related('user').first()
+
+
+class AssetAssignment(models.Model):
+    asset = models.ForeignKey(Asset, on_delete=models.PROTECT, related_name='assignments')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='asset_assignments')
+    assigned_on = models.DateField(default=timezone.localdate)
+    returned_on = models.DateField(null=True, blank=True)
+    note = models.CharField(max_length=200, blank=True)
+    return_note = models.CharField(max_length=200, blank=True)
+    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+
+    class Meta:
+        ordering = ['-assigned_on', '-id']
+        constraints = [
+            # Ek asset ek waqt par sirf ek insaan ke paas
+            models.UniqueConstraint(
+                fields=['asset'], condition=models.Q(returned_on__isnull=True), name='one_active_assignment_per_asset',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.asset_id} -> {self.user_id}'
+
+
+class ChecklistTemplate(models.Model):
+    """Onboarding/offboarding ki default list. items: har line "Owner | Title"."""
+    KIND_CHOICES = [('onboarding', 'Onboarding'), ('offboarding', 'Offboarding')]
+    kind = models.CharField(max_length=12, choices=KIND_CHOICES, unique=True)
+    items = models.TextField()
+
+    def __str__(self):
+        return self.get_kind_display()
+
+
+class EmployeeChecklist(models.Model):
+    KIND_CHOICES = ChecklistTemplate.KIND_CHOICES
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='checklists')
+    kind = models.CharField(max_length=12, choices=KIND_CHOICES)
+    started_on = models.DateField(default=timezone.localdate)
+    started_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-started_on', '-id']
+
+    def __str__(self):
+        return f'{self.kind} {self.user_id}'
+
+    @property
+    def is_complete(self):
+        return self.completed_at is not None
+
+
+class ChecklistTask(models.Model):
+    OWNER_CHOICES = [('HR', 'HR'), ('IT', 'IT'), ('Manager', 'Manager'), ('Employee', 'Employee')]
+    checklist = models.ForeignKey(EmployeeChecklist, on_delete=models.CASCADE, related_name='tasks')
+    title = models.CharField(max_length=200)
+    owner = models.CharField(max_length=10, choices=OWNER_CHOICES, default='HR')
+    position = models.PositiveSmallIntegerField(default=0)
+    is_done = models.BooleanField(default=False)
+    done_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    done_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['position', 'id']
+
+    def __str__(self):
+        return self.title

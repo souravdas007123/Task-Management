@@ -1,0 +1,36 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ checklist.get_kind_display }}: {{ checklist.user.username }}{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ checklist.get_kind_display }}: {{ checklist.user.get_full_name|default:checklist.user.username }}</h1>
+        <p class="page-sub">Started {{ checklist.started_on|date:"d M Y" }}. {{ done }} of {{ total }} steps done{% if checklist.completed_at %}. Completed {{ checklist.completed_at|date:"d M Y" }}{% endif %}.</p>
+    </div>
+    {% if hr %}<div class="head-actions"><a href="{% url 'checklist_list' %}" class="btn btn-ghost">All checklists</a></div>{% endif %}
+</div>
+<section class="card">
+    <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ percent }}" aria-label="Checklist progress"><span style="width: {{ percent }}%;"></span></div>
+    <ul class="checklist" style="margin-top: 16px;">
+        {% for t in tasks %}
+        <li class="{% if t.is_done %}done{% endif %}">
+            {% if t.can_tick %}
+            <form method="POST" action="{% url 'checklist_toggle' t.pk %}">{% csrf_token %}
+                <button type="submit" class="check-btn" aria-label="{% if t.is_done %}Mark as not done{% else %}Mark as done{% endif %}: {{ t.title }}">{% if t.is_done %}<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>{% endif %}</button>
+            </form>
+            {% else %}
+            <span class="check-btn static" aria-hidden="true">{% if t.is_done %}<svg class="icon" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>{% endif %}</span>
+            {% endif %}
+            <span class="check-text">{{ t.title }} <span class="chip">{{ t.owner }}</span>{% if t.is_done and t.done_by %} <span class="muted">done by {{ t.done_by.username }}</span>{% endif %}</span>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% if held_assets %}
+<section class="card">
+    <h2 class="card-title">Assets still with {{ checklist.user.get_full_name|default:checklist.user.username }}</h2>
+    <ul class="plain-list">
+        {% for h in held_assets %}<li><span>{{ h.asset.name }} <span class="muted">({{ h.asset.asset_tag }})</span></span><span class="muted">since {{ h.assigned_on|date:"d M Y" }}</span></li>{% endfor %}
+    </ul>
+</section>
+{% endif %}
+{% endblock %}

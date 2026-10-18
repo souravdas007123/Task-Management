@@ -44,6 +44,20 @@
     </section>
 </div>
 
+{% if my_checklists %}
+<section class="card" aria-labelledby="cl-title">
+    <h2 class="card-title" id="cl-title">My checklists</h2>
+    <ul class="plain-list">{% for c in my_checklists %}<li><span>{{ c.get_kind_display }}, started {{ c.started_on|date:"d M Y" }}</span><a href="{% url 'checklist_detail' c.pk %}" class="btn btn-ghost btn-sm">Open</a></li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+<section class="card" aria-labelledby="assets-title">
+    <h2 class="card-title" id="assets-title">Company assets with me</h2>
+    {% if my_assets %}
+    <ul class="plain-list">{% for a in my_assets %}<li><span>{{ a.asset.name }} <span class="muted">({{ a.asset.asset_tag }})</span></span><span class="muted">since {{ a.assigned_on|date:"d M Y" }}</span></li>{% endfor %}</ul>
+    {% else %}<p class="muted">Nothing assigned to you.</p>{% endif %}
+</section>
+
 <section class="card" aria-labelledby="bal-title">
     <div class="card-title-row">
         <h2 class="card-title" id="bal-title">Leave balance for {{ year }}</h2>

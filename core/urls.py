@@ -2,8 +2,8 @@ from django.contrib.auth import views as auth_views
 from django.urls import path, reverse_lazy
 
 from . import (
-    views, views_api, views_budget, views_hr, views_misc, views_office, views_projects, views_reports,
-    views_work,
+    views, views_api, views_attendance, views_budget, views_hr, views_misc, views_office, views_projects, views_reports,
+    views_work, views_workplace,
 )
 
 urlpatterns = [
@@ -60,6 +60,40 @@ urlpatterns = [
     path('leave/<int:pk>/reject/', views_office.leave_reject, name='leave_reject'),
     path('leave/<int:pk>/cancel/', views_office.leave_cancel, name='leave_cancel'),
     path('audit/', views_office.audit_log, name='audit_log'),
+
+    # Attendance
+    path('attendance/', views_attendance.attendance_me, name='attendance_me'),
+    path('attendance/check-in/', views_attendance.check_in, name='check_in'),
+    path('attendance/check-out/', views_attendance.check_out, name='check_out'),
+    path('attendance/team/', views_attendance.attendance_team, name='attendance_team'),
+    path('attendance/team/export/', views_attendance.attendance_team_export, name='attendance_team_export'),
+    path('attendance/team/<int:user_id>/', views_attendance.attendance_person, name='attendance_person'),
+    path('attendance/edit/<int:user_id>/<str:day>/', views_attendance.attendance_edit, name='attendance_edit'),
+    path('attendance/<int:pk>/delete/', views_attendance.attendance_delete, name='attendance_delete'),
+
+    # Announcements
+    path('announcements/', views_workplace.announcement_list, name='announcement_list'),
+    path('announcements/add/', views_workplace.announcement_add, name='announcement_add'),
+    path('announcements/<int:pk>/edit/', views_workplace.announcement_edit, name='announcement_edit'),
+    path('announcements/<int:pk>/delete/', views_workplace.announcement_delete, name='announcement_delete'),
+
+    # Assets (HR)
+    path('hr/assets/', views_workplace.asset_list, name='asset_list'),
+    path('hr/assets/add/', views_workplace.asset_add, name='asset_add'),
+    path('hr/assets/<int:pk>/', views_workplace.asset_detail, name='asset_detail'),
+    path('hr/assets/<int:pk>/edit/', views_workplace.asset_edit, name='asset_edit'),
+    path('hr/assets/<int:pk>/assign/', views_workplace.asset_assign, name='asset_assign'),
+    path('hr/assets/<int:pk>/return/', views_workplace.asset_return, name='asset_return'),
+    path('hr/assets/<int:pk>/status/', views_workplace.asset_status, name='asset_status'),
+    path('hr/assets/<int:pk>/delete/', views_workplace.asset_delete, name='asset_delete'),
+
+    # Onboarding / offboarding checklists
+    path('hr/checklists/', views_workplace.checklist_list, name='checklist_list'),
+    path('hr/checklists/start/', views_workplace.checklist_start, name='checklist_start'),
+    path('hr/checklists/templates/', views_workplace.checklist_templates, name='checklist_templates'),
+    path('hr/checklists/<int:pk>/delete/', views_workplace.checklist_delete, name='checklist_delete'),
+    path('checklists/<int:pk>/', views_workplace.checklist_detail, name='checklist_detail'),
+    path('checklists/task/<int:pk>/toggle/', views_workplace.checklist_toggle, name='checklist_toggle'),
 
     # People, holidays, payslips (sabke liye)
     path('people/', views_hr.people, name='people'),

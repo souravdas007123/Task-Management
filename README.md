@@ -108,3 +108,12 @@ Without Docker: `pip install -r requirements-prod.txt`, set `DJANGO_DEBUG=False`
 - **Payroll** (`HR > Payroll`): create draft payslips for a month, adjust bonus or extra deduction, recalculate, publish. Unpaid leave is deducted as gross / working days of the month per unpaid day. Payslips are snapshots, so later salary changes do not alter old ones. Employees can print or save a payslip as PDF from the browser. CSV export is available for HR.
 - Not included: pro-rating for mid-month joiners (adjust by hand), automatic tax slabs (enter TDS per month), bank transfer files.
 - Salary and payslip tables are deliberately not registered in the Django admin site.
+
+## Attendance, announcements, assets and onboarding
+
+- **Time zone**: the default is now `Asia/Kolkata` (it was UTC). Set `DJANGO_TIME_ZONE` for another country. Due dates and attendance use this zone.
+- **Attendance** (`/attendance/`): Check in and Check out buttons, one pair per day. Check-in after the start time plus grace counts as late (`DJANGO_WORK_START=09:30`, `DJANGO_WORK_GRACE_MINUTES=15`). Hours of `DJANGO_FULL_DAY_HOURS=8` or more is a full day, `DJANGO_HALF_DAY_HOURS=4` or more is a half day. Absent means a past working day (not weekend, holiday or approved leave) with no check-in. A day without check-out counts as present and is flagged for HR to fix.
+- **Team attendance** (`/attendance/team/`): HR and admin see everyone, a manager sees the people who report to them (set on the employee record), with CSV export. HR can add, fix or delete an entry.
+- **Announcements** (`/announcements/`): HR posts, everyone reads. Pin to the top, optional "hide after" date. Everyone gets an in-app notification and the latest three show on the dashboard.
+- **Assets** (`/hr/assets/`, HR only): laptops, phones and so on with tag, serial, cost. Assign, return (optionally mark for repair), retire. Full history is kept, an asset can be with only one person at a time, and an employee sees their assets on My profile.
+- **Onboarding and offboarding** (`/hr/checklists/`): start a checklist for a person from an editable template (one step per line, `Owner | Step`). Employees tick their own steps, managers tick manager steps, HR can tick anything. HR is notified when a checklist completes. Offboarding also lists assets still with the person.

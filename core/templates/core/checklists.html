@@ -1,0 +1,54 @@
+{% extends 'core/base.html' %}
+{% block title %}Onboarding checklists{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Onboarding and offboarding</h1>
+        <p class="page-sub">Step-by-step lists so nothing is missed when someone joins or leaves.</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'checklist_templates' %}" class="btn btn-ghost">Edit templates</a>
+        <a href="{% url 'hr_employees' %}" class="btn btn-ghost">HR</a>
+    </div>
+</div>
+<section class="card" aria-labelledby="start-title">
+    <h2 class="card-title" id="start-title">Start a checklist</h2>
+    <form method="POST" action="{% url 'checklist_start' %}" class="inline-form">
+        {% csrf_token %}
+        <select name="user" class="form-control" aria-label="Person" required>
+            <option value="">Choose a person</option>
+            {% for p in people %}<option value="{{ p.pk }}">{{ p.get_full_name|default:p.username }}</option>{% endfor %}
+        </select>
+        <select name="kind" class="form-control" aria-label="Type">{% for v, l in kinds %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+        <button type="submit" class="btn btn-primary">Start</button>
+    </form>
+</section>
+<section class="card">
+    <form method="GET" class="filter-bar">
+        <select name="status" class="form-control" aria-label="Status">
+            <option value="">All</option><option value="open" {% if current_status == 'open' %}selected{% endif %}>In progress</option><option value="done" {% if current_status == 'done' %}selected{% endif %}>Completed</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Apply</button>
+    </form>
+    {% if checklists %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">Person</th><th scope="col">Type</th><th scope="col">Started</th><th scope="col">Progress</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+            <tbody>
+                {% for c in checklists %}
+                <tr>
+                    <td><a href="{% url 'checklist_detail' c.pk %}">{{ c.user.get_full_name|default:c.user.username }}</a></td>
+                    <td>{{ c.get_kind_display }}</td>
+                    <td class="nowrap">{{ c.started_on|date:"d M Y" }}</td>
+                    <td>{{ c.done }} of {{ c.total }}{% if c.completed_at %} <span class="chip">Complete</span>{% endif %}</td>
+                    <td class="row-actions"><form method="POST" action="{% url 'checklist_delete' c.pk %}" class="inline" onsubmit="return confirm('Delete this checklist?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty"><p>No checklists yet.</p></div>
+    {% endif %}
+</section>
+{% endblock %}

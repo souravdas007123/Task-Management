@@ -1,0 +1,17 @@
+{% extends 'core/base.html' %}
+{% block title %}Attendance: {{ person.username }}{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ person.get_full_name|default:person.username }}</h1>
+        <p class="page-sub">Attendance for {{ label }}</p>
+    </div>
+    <div class="head-actions">
+        <a href="?month={{ prev_key }}" class="btn btn-ghost">&larr; Earlier</a>
+        <a href="?month={{ next_key }}" class="btn btn-ghost">Later &rarr;</a>
+        <a href="{% url 'attendance_team' %}?month={{ month_key }}" class="btn btn-ghost">Team</a>
+    </div>
+</div>
+{% include 'core/_attendance_summary.html' %}
+<section class="card">{% include 'core/_attendance_rows.html' %}</section>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'core/base.html' %}
+{% block title %}Assets{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Assets</h1>
+        <p class="page-sub">Laptops, phones and other company equipment, and who has them.</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'hr_employees' %}" class="btn btn-ghost">HR</a>
+        <a href="{% url 'asset_add' %}" class="btn btn-primary">Add asset</a>
+    </div>
+</div>
+<section class="card">
+    <form method="GET" class="filter-bar" role="search">
+        <input type="search" name="q" value="{{ current.q }}" class="form-control grow" placeholder="Search name, tag, serial or person" aria-label="Search">
+        <select name="status" class="form-control" aria-label="Status"><option value="">Any status</option>{% for v, l in status_choices %}<option value="{{ v }}" {% if current.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+        <select name="category" class="form-control" aria-label="Category"><option value="">Any type</option>{% for v, l in category_choices %}<option value="{{ v }}" {% if current.category == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+        <button type="submit" class="btn btn-primary">Apply</button>
+        {% if current.q or current.status or current.category %}<a href="{% url 'asset_list' %}" class="btn btn-ghost">Clear</a>{% endif %}
+    </form>
+    {% if assets %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">Tag</th><th scope="col">Asset</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">With</th></tr></thead>
+            <tbody>
+                {% for a in assets %}
+                <tr>
+                    <td class="nowrap"><a href="{% url 'asset_detail' a.pk %}">{{ a.asset_tag }}</a></td>
+                    <td>{{ a.name }}{% if a.serial_number %}<div class="task-meta"><span class="muted">S/N {{ a.serial_number }}</span></div>{% endif %}</td>
+                    <td>{{ a.get_category_display }}</td>
+                    <td><span class="pill"><span class="dot {% if a.status == 'available' %}c-completed{% elif a.status == 'assigned' %}c-progress{% elif a.status == 'repair' %}c-pending{% else %}c-hold{% endif %}"></span>{{ a.get_status_display }}</span></td>
+                    <td>{% if a.holder %}{{ a.holder.get_full_name|default:a.holder.username }}{% else %}-{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pager" aria-label="Pages">
+        {% if page_obj.has_previous %}<a class="btn btn-ghost btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+        <span class="muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="btn btn-ghost btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="empty"><p>No assets match.</p><a href="{% url 'asset_add' %}" class="btn btn-primary">Add asset</a></div>
+    {% endif %}
+</section>
+{% endblock %}

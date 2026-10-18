@@ -1652,3 +1652,9 @@ form.inline { display: inline; margin: 0; }
     .card { border: 1px solid #999 !important; }
     .muted, .help { color: #333 !important; }
 }
+
+.checkin { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.nav { overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+
+.announcement.is-pinned { border-color: var(--accent); }
+.announcement .prose { margin: 8px 0 12px; }

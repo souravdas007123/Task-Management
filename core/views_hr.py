@@ -19,7 +19,7 @@ from .forms import (
     DepartmentForm, EmployeeForm, HolidayForm, MyContactForm, PayslipAdjustForm, SalaryStructureForm,
 )
 from .hr import DEFAULT_POLICY, leave_balance, policies
-from .models import Department, Holiday, LeavePolicy, LeaveRequest, Payslip, SalaryStructure, UserProfile
+from .models import AssetAssignment, Department, EmployeeChecklist, Holiday, LeavePolicy, LeaveRequest, Payslip, SalaryStructure, UserProfile
 from .payroll import generate_month, recalculate
 from .permissions import hr_required, is_hr
 from .services import display_name, notify
@@ -138,6 +138,8 @@ def my_profile(request):
         'balance': leave_balance(request.user, year),
         'year': year,
         'payslip_count': Payslip.objects.filter(user=request.user, status='published').count(),
+        'my_assets': AssetAssignment.objects.filter(user=request.user, returned_on__isnull=True).select_related('asset'),
+        'my_checklists': EmployeeChecklist.objects.filter(user=request.user, completed_at__isnull=True),
     })
 
 

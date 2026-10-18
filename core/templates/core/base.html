@@ -74,6 +74,14 @@
                 HR
             </a>
             {% endif %}
+            <a href="{% url 'announcement_list' %}" {% if url_name == 'announcement_list' or url_name == 'announcement_add' or url_name == 'announcement_edit' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11v3a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1zM17 8a5 5 0 0 1 0 8"/></svg>
+                Announcements
+            </a>
+            <a href="{% url 'attendance_me' %}" {% if url_name == 'attendance_me' or url_name == 'attendance_team' or url_name == 'attendance_person' or url_name == 'attendance_edit' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+                Attendance
+            </a>
             <a href="{% url 'leave_list' %}" {% if url_name == 'leave_list' or url_name == 'leave_add' %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11M10 21v-6h4v6"/></svg>
                 Leave

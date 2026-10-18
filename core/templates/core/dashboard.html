@@ -13,6 +13,15 @@
     <a href="{% url 'add_task' %}{% if current_project %}?project={{ current_project.pk }}{% endif %}" class="btn btn-primary">Add task</a>
 </div>
 
+{% if announcements %}
+<section class="card" aria-labelledby="news-title">
+    <div class="card-title-row"><h2 class="card-title" id="news-title">Announcements</h2><a href="{% url 'announcement_list' %}" class="btn btn-ghost btn-sm">See all</a></div>
+    {% for a in announcements %}
+    <div class="comment-body" style="margin-bottom: 8px;"><strong>{% if a.is_pinned %}<span class="chip">Pinned</span> {% endif %}{{ a.title }}</strong> <span class="muted">{{ a.created_at|date:"d M" }}</span><div class="muted">{{ a.body|truncatechars:160 }}</div></div>
+    {% endfor %}
+</section>
+{% endif %}
+
 <section class="card" aria-labelledby="breakdown-title">
     <h2 class="card-title" id="breakdown-title">Status breakdown</h2>
 

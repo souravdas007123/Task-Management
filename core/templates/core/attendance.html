@@ -1,0 +1,43 @@
+{% extends 'core/base.html' %}
+{% block title %}Attendance{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Attendance</h1>
+        <p class="page-sub">Office starts at {{ start|time:"H:i" }}. Checking in after {{ cutoff|time:"H:i" }} counts as late.</p>
+    </div>
+    <div class="head-actions">
+        {% if can_view_team %}<a href="{% url 'attendance_team' %}" class="btn btn-ghost">Team attendance</a>{% endif %}
+        <a href="{% url 'leave_add' %}" class="btn btn-ghost">Request leave</a>
+    </div>
+</div>
+
+<section class="card checkin" aria-labelledby="today-title">
+    <div>
+        <h2 class="card-title" id="today-title">Today, {{ now|date:"l, d M" }}</h2>
+        {% if record %}
+        <p class="muted">Checked in at <strong>{{ record.check_in|time:"H:i" }}</strong>{% if record.check_out %}, checked out at <strong>{{ record.check_out|time:"H:i" }}</strong> ({{ record.hours|floatformat:1 }} hours).{% else %}. Don't forget to check out.{% endif %}</p>
+        {% else %}
+        <p class="muted">You have not checked in yet.</p>
+        {% endif %}
+    </div>
+    <div class="head-actions">
+        {% if can_check_in %}<form method="POST" action="{% url 'check_in' %}">{% csrf_token %}<button type="submit" class="btn btn-primary">Check in</button></form>{% endif %}
+        {% if can_check_out %}<form method="POST" action="{% url 'check_out' %}">{% csrf_token %}<button type="submit" class="btn btn-primary">Check out</button></form>{% endif %}
+        {% if record and record.check_out %}<span class="chip">Done for today</span>{% endif %}
+    </div>
+</section>
+
+<div class="page-head">
+    <div><h2 style="margin:0;">{{ label }}</h2></div>
+    <div class="head-actions">
+        <a href="?month={{ prev_key }}" class="btn btn-ghost">&larr; Earlier</a>
+        {% if next_key %}<a href="?month={{ next_key }}" class="btn btn-ghost">Later &rarr;</a>{% endif %}
+    </div>
+</div>
+{% include 'core/_attendance_summary.html' %}
+<section class="card">
+    {% include 'core/_attendance_rows.html' with hr=False %}
+    <p class="help">Days with no check-out count as present, but ask HR to fix them. Absent only counts past working days with no leave.</p>
+</section>
+{% endblock %}

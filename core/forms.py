@@ -4,7 +4,7 @@ from django.core.validators import FileExtensionValidator
 from django.utils import timezone
 
 from .models import (
-    Attachment, ChecklistItem, Comment, Department, Expense, Holiday, Label, LeaveRequest, Payslip,
+    Announcement, Asset, Attachment, Attendance, ChecklistItem, Comment, Department, Expense, Holiday, Label, LeaveRequest, Payslip,
     Project, SalaryStructure, Task, TimeEntry, UserProfile,
 )
 from .hr import check_leave_request
@@ -412,3 +412,92 @@ class DepartmentForm(forms.ModelForm):
         fields = ['name']
         widgets = {'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Sales'})}
         error_messages = {'name': {'unique': 'That department already exists.'}}
+
+
+class AttendanceEditForm(forms.ModelForm):
+    """HR galat ya bhoole hue check-in/check-out theek karta hai."""
+    class Meta:
+        model = Attendance
+        fields = ['check_in', 'check_out', 'note']
+        widgets = {
+            'check_in': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'),
+            'check_out': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'),
+            'note': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Why it was changed'}),
+        }
+
+    def __init__(self, *args, day=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.day = day
+        self.fields['check_in'].input_formats = ['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M', '%Y-%m-%d %H:%M:%S']
+        self.fields['check_out'].input_formats = self.fields['check_in'].input_formats
+        self.fields['check_out'].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        check_in, check_out = cleaned.get('check_in'), cleaned.get('check_out')
+        if check_in and self.day and timezone.localtime(check_in).date() != self.day:
+            self.add_error('check_in', f'The check-in must be on {self.day:%d %b %Y}.')
+        if check_in and check_out:
+            if check_out <= check_in:
+                self.add_error('check_out', 'The check-out must be after the check-in.')
+            elif (check_out - check_in).total_seconds() > 24 * 3600:
+                self.add_error('check_out', 'A day cannot be longer than 24 hours.')
+        if check_out and check_out > timezone.now():
+            self.add_error('check_out', 'The check-out cannot be in the future.')
+        return cleaned
+
+
+class AnnouncementForm(forms.ModelForm):
+    class Meta:
+        model = Announcement
+        fields = ['title', 'body', 'is_pinned', 'expires_on']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 6}),
+            'expires_on': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+        labels = {'is_pinned': 'Pin to the top', 'expires_on': 'Hide after'}
+
+    def clean_expires_on(self):
+        value = self.cleaned_data.get('expires_on')
+        if value and not self.instance.pk and value < timezone.localdate():
+            raise forms.ValidationError('That date has already passed.')
+        return value
+
+
+class AssetForm(forms.ModelForm):
+    class Meta:
+        model = Asset
+        fields = ['name', 'asset_tag', 'category', 'serial_number', 'purchase_date', 'purchase_cost', 'notes']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. MacBook Air 13'}),
+            'asset_tag': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. LAP-0012'}),
+            'category': forms.Select(attrs={'class': 'form-control'}),
+            'serial_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'purchase_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'purchase_cost': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01'}),
+            'notes': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+        error_messages = {'asset_tag': {'unique': 'Another asset already has this tag.'}}
+
+    def clean_asset_tag(self):
+        return (self.cleaned_data.get('asset_tag') or '').strip().upper()
+
+
+class AssetAssignForm(forms.Form):
+    user = forms.ModelChoiceField(
+        queryset=User.objects.none(), label='Give to', widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+    assigned_on = forms.DateField(initial=timezone.localdate, widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
+    note = forms.CharField(max_length=200, required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Condition, accessories given (optional)'}))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['user'].queryset = User.objects.filter(is_active=True).order_by('username')
+        self.fields['user'].label_from_instance = lambda u: u.get_full_name() or u.username
+
+    def clean_assigned_on(self):
+        value = self.cleaned_data['assigned_on']
+        if value > timezone.localdate():
+            raise forms.ValidationError('The date cannot be in the future.')
+        return value

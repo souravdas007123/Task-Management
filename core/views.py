@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.core.paginator import Paginator
-from django.db.models import Avg, Count, Max
+from django.db.models import Avg, Count, Max, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -13,7 +13,7 @@ from django.views.decorators.http import require_POST
 from .budget import refresh_budget_alert
 from .filters import SORT_CHOICES, filter_tasks, parse_int, scope_tasks, sort_tasks
 from .forms import AttachmentForm, ChecklistItemForm, CommentForm, TaskForm, TimeEntryForm
-from .models import Attachment, ChecklistItem, Comment, Label, Project, Task, TimeEntry
+from .models import Announcement, Attachment, ChecklistItem, Comment, Label, Project, Task, TimeEntry
 from .permissions import (
     can_delete_task, can_edit_task, can_view_task, is_manager, visible_projects, visible_tasks,
 )
@@ -102,6 +102,9 @@ def dashboard(request):
         'labels': Label.objects.all(),
         'current_project': visible_projects(Project.objects.all(), request.user).filter(pk=parse_int(params.get('project'))).first(),
     }
+    context['announcements'] = list(Announcement.objects.filter(
+        Q(expires_on__isnull=True) | Q(expires_on__gte=timezone.localdate())
+    )[:3])
     return render(request, 'core/dashboard.html', context)
 
 
