@@ -1,0 +1,72 @@
+{% extends 'core/base.html' %}
+{% block title %}Payroll{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Payroll: {{ label }}</h1>
+        <p class="page-sub">Create draft payslips, adjust them, then publish. Employees see a payslip only after it is published.</p>
+    </div>
+    <div class="head-actions">
+        <a href="?month={{ prev_key }}" class="btn btn-ghost">&larr; Earlier</a>
+        <a href="?month={{ next_key }}" class="btn btn-ghost">Later &rarr;</a>
+        <a href="{% url 'hr_employees' %}" class="btn btn-ghost">HR</a>
+    </div>
+</div>
+
+<div class="stat-row">
+    <div class="card stat"><span class="muted">Gross</span><strong>{{ currency }}{{ totals.gross|floatformat:"2g" }}</strong></div>
+    <div class="card stat"><span class="muted">Deductions</span><strong>{{ currency }}{{ totals.deductions|floatformat:"2g" }}</strong></div>
+    <div class="card stat"><span class="muted">Bonus</span><strong>{{ currency }}{{ totals.bonus|floatformat:"2g" }}</strong></div>
+    <div class="card stat"><span class="muted">Net to pay</span><strong>{{ currency }}{{ totals.net|floatformat:"2g" }}</strong></div>
+</div>
+
+<section class="card">
+    <div class="head-actions" style="margin-bottom: 12px;">
+        <form method="POST" action="{% url 'payroll_generate' %}" class="inline">{% csrf_token %}<input type="hidden" name="month" value="{{ month_key }}"><button type="submit" class="btn btn-primary">Create payslips for {{ label }}</button></form>
+        {% if drafts %}
+        <form method="POST" action="{% url 'payroll_publish_all' %}" class="inline" onsubmit="return confirm('Publish {{ drafts }} payslip(s)? Employees will see them and get a notification.');">{% csrf_token %}<input type="hidden" name="month" value="{{ month_key }}"><button type="submit" class="btn btn-ghost">Publish all drafts ({{ drafts }})</button></form>
+        {% endif %}
+        {% if slips %}<a href="{% url 'payroll_export' %}?month={{ month_key }}" class="btn btn-ghost">Download CSV</a>{% endif %}
+    </div>
+
+    {% if slips %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">Employee</th><th scope="col" class="num">Gross</th><th scope="col" class="num">Unpaid days</th><th scope="col" class="num">Deductions</th><th scope="col" class="num">Bonus</th><th scope="col" class="num">Reimb.</th><th scope="col" class="num">Net pay</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+            <tbody>
+                {% for s in slips %}
+                <tr>
+                    <td>{{ s.user.get_full_name|default:s.user.username }}{% if s.adjustment_note %}<div class="task-meta"><span class="muted">{{ s.adjustment_note }}</span></div>{% endif %}</td>
+                    <td class="num">{{ currency }}{{ s.gross|floatformat:"2g" }}</td>
+                    <td class="num">{{ s.unpaid_days }}</td>
+                    <td class="num">{{ currency }}{{ s.total_deductions|floatformat:"2g" }}</td>
+                    <td class="num">{{ currency }}{{ s.bonus|floatformat:"2g" }}</td>
+                    <td class="num">{{ currency }}{{ s.reimbursement|floatformat:"2g" }}</td>
+                    <td class="num"><strong class="{% if s.net < 0 %}overdue{% endif %}">{{ currency }}{{ s.net|floatformat:"2g" }}</strong></td>
+                    <td><span class="pill"><span class="dot {% if s.status == 'published' %}c-completed{% else %}c-pending{% endif %}"></span>{{ s.get_status_display }}</span></td>
+                    <td class="row-actions">
+                        <a href="{% url 'payslip_detail' s.pk %}" class="btn btn-ghost btn-sm">View</a>
+                        {% if s.status == 'draft' %}
+                        <a href="{% url 'payslip_adjust' s.pk %}" class="btn btn-ghost btn-sm">Adjust</a>
+                        <form method="POST" action="{% url 'payslip_recalculate' s.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Recalculate</button></form>
+                        <form method="POST" action="{% url 'payslip_publish' s.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Publish</button></form>
+                        <form method="POST" action="{% url 'payslip_delete' s.pk %}" class="inline" onsubmit="return confirm('Delete this draft?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
+                        {% else %}
+                        <form method="POST" action="{% url 'payslip_reopen' s.pk %}" class="inline" onsubmit="return confirm('Move back to draft? The employee will no longer see it.');">{% csrf_token %}<button type="submit" class="link-btn">Reopen</button></form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty"><p>No payslips for {{ label }} yet. Create them from each person's salary structure.</p></div>
+    {% endif %}
+
+    {% if without_structure %}
+    <p class="help">No salary set for: {% for u in without_structure %}<a href="{% url 'salary_history' u.pk %}">{{ u.get_full_name|default:u.username }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+    {% endif %}
+    <p class="help">Unpaid leave is deducted per working day (gross divided by the month's working days). Provident fund is a percentage of basic. Joining in the middle of a month is not pro-rated: adjust that payslip by hand.</p>
+</section>
+{% endblock %}

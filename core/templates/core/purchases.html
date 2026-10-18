@@ -1,0 +1,84 @@
+{% extends 'core/base.html' %}
+{% block title %}Purchases{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Purchase requests</h1>
+        <p class="page-sub">Ask for equipment, software or supplies. Your manager approves first; anything above {{ currency }}{{ limit|floatformat:"2g" }} also needs finance (HR).</p>
+    </div>
+    <div class="head-actions">
+        {% if hr %}<a href="{% url 'vendor_list' %}" class="btn btn-ghost">Vendors</a>{% endif %}
+        <a href="{% url 'purchase_add' %}" class="btn btn-primary">New request</a>
+    </div>
+</div>
+
+{% if level1 or level2 %}
+<section class="card">
+    <h2 class="card-title">Waiting for your approval</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Request</th><th scope="col">By</th><th scope="col" class="num">Total</th><th scope="col">Step</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        {% for p in level1 %}{% include 'core/_purchase_approval_row.html' with step='Manager' %}{% endfor %}
+        {% for p in level2 %}{% include 'core/_purchase_approval_row.html' with step='Finance' %}{% endfor %}
+        </tbody>
+    </table></div>
+</section>
+{% endif %}
+
+{% if work %}
+<section class="card">
+    <h2 class="card-title">To order or receive</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Request</th><th scope="col">By</th><th scope="col" class="num">Total</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
+        <tbody>
+        {% for p in work %}
+        <tr>
+            <td><div class="task-title">{{ p.title }}</div><div class="task-meta"><span class="muted">{{ p.quantity }} x {{ currency }}{{ p.unit_cost|floatformat:"2g" }}{% if p.project %}, {{ p.project.name }}{% endif %}{% if p.needed_by %}, needed by {{ p.needed_by|date:"d M" }}{% endif %}</span></div></td>
+            <td>{{ p.requested_by.get_full_name|default:p.requested_by.username }}</td>
+            <td class="num">{{ currency }}{{ p.total|floatformat:"2g" }}</td>
+            <td>{{ p.get_status_display }}{% if p.po_number %}<div class="task-meta"><span class="muted">PO {{ p.po_number }}</span></div>{% endif %}</td>
+            <td>
+                {% if p.status == 'approved' %}
+                <form method="POST" action="{% url 'purchase_order' p.pk %}" class="stack-form">
+                    {% csrf_token %}
+                    <select name="vendor" class="form-control" aria-label="Vendor"><option value="">{% if p.vendor %}{{ p.vendor.name }}{% else %}Vendor{% endif %}</option>{% for v in vendors %}<option value="{{ v.pk }}">{{ v.name }}</option>{% endfor %}</select>
+                    <input type="text" name="po_number" maxlength="40" class="form-control" placeholder="PO number" aria-label="PO number">
+                    <button type="submit" class="btn btn-primary btn-sm">Mark ordered</button>
+                </form>
+                {% else %}
+                <form method="POST" action="{% url 'purchase_receive' p.pk %}" class="stack-form">
+                    {% csrf_token %}
+                    <input type="number" name="actual_cost" min="0.01" step="0.01" class="form-control" placeholder="Real cost ({{ p.total|floatformat:'2' }})" aria-label="Real cost">
+                    <button type="submit" class="btn btn-primary btn-sm">Mark received</button>
+                </form>
+                {% if p.project %}<div class="help">The cost is added to {{ p.project.name }}.</div>{% endif %}
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+</section>
+{% endif %}
+
+<section class="card">
+    <h2 class="card-title">My requests</h2>
+    {% if mine %}
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Request</th><th scope="col" class="num">Total</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        {% for p in mine %}
+        <tr>
+            <td><div class="task-title">{{ p.title }}</div><div class="task-meta"><span class="muted">{{ p.get_category_display }}, {{ p.quantity }} x {{ currency }}{{ p.unit_cost|floatformat:"2g" }}, {{ p.created_at|date:"d M Y" }}</span></div></td>
+            <td class="num">{{ currency }}{% if p.actual_cost %}{{ p.actual_cost|floatformat:"2g" }}{% else %}{{ p.total|floatformat:"2g" }}{% endif %}</td>
+            <td><span class="pill"><span class="dot {% if p.status == 'received' or p.status == 'approved' or p.status == 'ordered' %}c-completed{% elif p.status == 'pending' or p.status == 'review' %}c-pending{% elif p.status == 'cancelled' %}c-hold{% else %}p-high{% endif %}"></span>{{ p.get_status_display }}</span>{% if p.review_note %}<div class="task-meta"><span class="muted">{{ p.review_note }}</span></div>{% endif %}</td>
+            <td class="row-actions">{% if p.status == 'pending' or p.status == 'review' or p.status == 'approved' %}<form method="POST" action="{% url 'purchase_cancel' p.pk %}" class="inline" onsubmit="return confirm('Cancel this request?');">{% csrf_token %}<button type="submit" class="link-btn">Cancel</button></form>{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}
+    <div class="empty"><p>No purchase requests.</p><a href="{% url 'purchase_add' %}" class="btn btn-primary">New request</a></div>
+    {% endif %}
+</section>
+{% endblock %}

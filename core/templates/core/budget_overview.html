@@ -1,0 +1,80 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Budget{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Budget</h1>
+        <p class="page-sub">Spent is approved expenses plus labour cost (logged time multiplied by each person's hourly rate).</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'expense_list' %}{% if pending_review %}?status=submitted{% endif %}" class="btn btn-ghost">
+            {% if pending_review %}Review {{ pending_review }} expense{{ pending_review|pluralize }}{% else %}Expenses{% endif %}
+        </a>
+        <a href="{% url 'expense_add' %}" class="btn btn-primary">Add expense</a>
+    </div>
+</div>
+
+<div class="stat-row">
+    <div class="card stat"><span class="muted">Total budget</span><strong>{{ currency }}{{ total_budget|floatformat:"2g" }}</strong></div>
+    <div class="card stat"><span class="muted">Spent (budgeted projects)</span><strong>{{ currency }}{{ total_spent_budgeted|floatformat:"2g" }}</strong></div>
+    <div class="card stat"><span class="muted">Remaining</span><strong class="{% if total_remaining < 0 %}overdue{% endif %}">{{ currency }}{{ total_remaining|floatformat:"2g" }}</strong></div>
+    <div class="card stat"><span class="muted">Projects over budget</span><strong class="{% if over_count %}overdue{% endif %}">{{ over_count }}</strong></div>
+</div>
+
+<section class="card" aria-labelledby="projects-title">
+    <h2 class="card-title" id="projects-title">Projects</h2>
+    {% if rows %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead>
+                <tr>
+                    <th scope="col">Project</th>
+                    <th scope="col" class="num">Budget</th>
+                    <th scope="col" class="num">Spent</th>
+                    <th scope="col" class="num">Remaining</th>
+                    <th scope="col">Used</th>
+                    <th scope="col"><span class="sr-only">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rows %}
+                <tr>
+                    <td>
+                        <a class="task-title" href="{% url 'project_budget' r.project.pk %}">{{ r.project.name }}</a>
+                        {% if r.expenses_pending %}<div class="task-meta"><span class="muted">{{ currency }}{{ r.expenses_pending|floatformat:"2g" }} waiting for review</span></div>{% endif %}
+                    </td>
+                    <td class="num">{% if r.has_budget %}{{ currency }}{{ r.budget|floatformat:"2g" }}{% else %}<span class="muted">No budget</span>{% endif %}</td>
+                    <td class="num">{{ currency }}{{ r.spent|floatformat:"2g" }}</td>
+                    <td class="num">
+                        {% if r.has_budget %}
+                            {% if r.over_by %}<span class="overdue">{{ currency }}{{ r.over_by|floatformat:"2g" }} over</span>{% else %}{{ currency }}{{ r.remaining|floatformat:"2g" }}{% endif %}
+                        {% else %}<span class="muted">-</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if r.has_budget %}
+                        <div class="progress-cell">
+                            <div class="meter meter-sm meter-{{ r.state }}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ r.bar }}" aria-label="Budget used for {{ r.project.name }}"><span style="width: {{ r.bar }}%;"></span></div>
+                            <small>{{ r.percent }}%</small>
+                        </div>
+                        {% else %}<span class="muted">-</span>{% endif %}
+                    </td>
+                    <td class="row-actions">
+                        <a href="{% url 'project_budget' r.project.pk %}" class="btn btn-ghost btn-sm">Details</a>
+                        <a href="{% url 'project_edit' r.project.pk %}" class="btn btn-ghost btn-sm">Edit budget</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="help">Spent across all projects, including those without a budget: {{ currency }}{{ total_spent_all|floatformat:"2g" }}.</p>
+    {% else %}
+    <div class="empty">
+        <p>No projects yet. Create a project and set its budget to start tracking money.</p>
+        <a href="{% url 'project_add' %}" class="btn btn-primary">Add project</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

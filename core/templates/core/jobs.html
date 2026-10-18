@@ -1,0 +1,42 @@
+{% extends 'core/base.html' %}
+{% block title %}Recruitment{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Recruitment</h1>
+        <p class="page-sub">Job openings and the candidates for each.</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'hr_employees' %}" class="btn btn-ghost">HR</a>
+        <a href="{% url 'job_add' %}" class="btn btn-primary">New opening</a>
+    </div>
+</div>
+<section class="card">
+    <form method="GET" class="filter-bar" role="search">
+        <select name="status" class="form-control" aria-label="Status"><option value="">Any status</option>{% for v, l in status_choices %}<option value="{{ v }}" {% if current_status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+        <button type="submit" class="btn btn-primary">Apply</button>
+        {% if current_status %}<a href="{% url 'job_list' %}" class="btn btn-ghost">Clear</a>{% endif %}
+    </form>
+    {% if jobs %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">Position</th><th scope="col">Department</th><th scope="col" class="num">Openings</th><th scope="col" class="num">In process</th><th scope="col" class="num">Hired</th><th scope="col">Status</th></tr></thead>
+            <tbody>
+            {% for j in jobs %}
+            <tr>
+                <td><a class="task-title" href="{% url 'job_detail' j.pk %}">{{ j.title }}</a>{% if j.location %}<div class="task-meta"><span class="muted">{{ j.location }}</span></div>{% endif %}</td>
+                <td>{% if j.department %}{{ j.department.name }}{% else %}-{% endif %}</td>
+                <td class="num">{{ j.positions }}</td>
+                <td class="num">{{ j.active }}</td>
+                <td class="num">{{ j.hired }}</td>
+                <td><span class="pill"><span class="dot {% if j.status == 'open' %}c-completed{% elif j.status == 'on_hold' %}c-pending{% else %}c-hold{% endif %}"></span>{{ j.get_status_display }}</span></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty"><p>No job openings.</p><a href="{% url 'job_add' %}" class="btn btn-primary">New opening</a></div>
+    {% endif %}
+</section>
+{% endblock %}

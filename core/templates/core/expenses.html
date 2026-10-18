@@ -1,0 +1,63 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Expenses{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Expenses</h1>
+        <p class="page-sub">{% if manager %}Review what the team has spent. Only approved expenses count against a budget.{% else %}Your submitted expenses. A manager approves them before they count against a budget.{% endif %}</p>
+    </div>
+    <div class="head-actions">
+        {% if manager %}<a href="{% url 'expense_export' %}" class="btn btn-ghost">Download CSV</a>{% endif %}
+        <a href="{% url 'expense_add' %}" class="btn btn-primary">Add expense</a>
+    </div>
+</div>
+
+<div class="stat-row stat-row-3">
+    <div class="card stat"><span class="muted">Approved</span><strong>{{ currency }}{{ totals_approved|floatformat:"2g" }}</strong></div>
+    <div class="card stat"><span class="muted">Waiting for review</span><strong>{{ currency }}{{ totals_pending|floatformat:"2g" }}</strong></div>
+    <div class="card stat"><span class="muted">Rejected</span><strong>{{ currency }}{{ totals_rejected|floatformat:"2g" }}</strong></div>
+</div>
+
+<section class="card">
+    <form method="GET" class="filter-bar" role="search">
+        <select name="status" class="form-control" aria-label="Status">
+            <option value="">Any status</option>
+            {% for value, label in status_choices %}<option value="{{ value }}" {% if current.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <select name="project" class="form-control" aria-label="Project">
+            <option value="">All projects</option>
+            {% for project in projects %}<option value="{{ project.pk }}" {% if current.project == project.pk %}selected{% endif %}>{{ project.name }}</option>{% endfor %}
+        </select>
+        <select name="category" class="form-control" aria-label="Category">
+            <option value="">Any category</option>
+            {% for value, label in category_choices %}<option value="{{ value }}" {% if current.category == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">Apply</button>
+        {% if current.status or current.project or current.category %}<a href="{% url 'expense_list' %}" class="btn btn-ghost">Clear</a>{% endif %}
+    </form>
+
+    {% if expenses %}
+        {% include 'core/_expense_table.html' with next_url=next_url %}
+
+        {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="pager" aria-label="Pages">
+            {% if page_obj.has_previous %}<a class="btn btn-ghost btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+            <span class="muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}<a class="btn btn-ghost btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+        </nav>
+        {% endif %}
+    {% else %}
+    <div class="empty">
+        {% if current.status or current.project or current.category %}
+        <p>No expenses match these filters.</p>
+        <a href="{% url 'expense_list' %}" class="btn btn-ghost">Clear filters</a>
+        {% else %}
+        <p>No expenses yet. Add one to track what a project has cost.</p>
+        <a href="{% url 'expense_add' %}" class="btn btn-primary">Add expense</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

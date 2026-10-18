@@ -1,0 +1,63 @@
+{% extends 'core/base.html' %}
+{% block title %}Visitors{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Visitors</h1>
+        <p class="page-sub">{% if hr %}Everyone who visits the office. Check visitors in at reception.{% else %}Visitors you have invited.{% endif %}</p>
+    </div>
+    <div class="head-actions"><a href="{% url 'visitor_add' %}" class="btn btn-primary">Register a visitor</a></div>
+</div>
+<div class="stat-row stat-row-3">
+    <div class="card stat"><span class="muted">In the office now</span><strong>{{ inside }}</strong></div>
+    <div class="card stat"><span class="muted">Expected today</span><strong>{{ expected_today }}</strong></div>
+    <div class="card stat"><span class="muted">Today</span><strong>{{ today|date:"d M" }}</strong></div>
+</div>
+<section class="card">
+    <form method="GET" class="filter-bar" role="search">
+        <input type="search" name="q" value="{{ current.q }}" class="form-control grow" placeholder="Search visitor, company or host" aria-label="Search">
+        <select name="status" class="form-control" aria-label="Status"><option value="">Any status</option>{% for v, l in status_choices %}<option value="{{ v }}" {% if current.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+        <button type="submit" class="btn btn-primary">Apply</button>
+        {% if current.q or current.status %}<a href="{% url 'visitor_list' %}" class="btn btn-ghost">Clear</a>{% endif %}
+    </form>
+    {% if visitors %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">Visitor</th><th scope="col">Host</th><th scope="col">Date</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+            <tbody>
+            {% for v in visitors %}
+            <tr>
+                <td>
+                    <div class="task-title">{{ v.name }}</div>
+                    <div class="task-meta"><span class="muted">{{ v.company }}{% if v.company and v.purpose %}, {% endif %}{{ v.purpose }}{% if v.phone %} ({{ v.phone }}){% endif %}</span></div>
+                </td>
+                <td>{{ v.host.get_full_name|default:v.host.username }}</td>
+                <td class="nowrap">{{ v.expected_on|date:"d M Y" }}{% if v.checked_in_at %}<div class="task-meta"><span class="muted">In {{ v.checked_in_at|time:"H:i" }}{% if v.checked_out_at %}, out {{ v.checked_out_at|time:"H:i" }}{% endif %}{% if v.badge_no %}, badge {{ v.badge_no }}{% endif %}</span></div>{% endif %}</td>
+                <td><span class="pill"><span class="dot {% if v.status == 'in' %}c-progress{% elif v.status == 'expected' %}c-pending{% elif v.status == 'out' %}c-completed{% else %}c-hold{% endif %}"></span>{{ v.get_status_display }}</span></td>
+                <td class="row-actions">
+                    {% if v.status == 'expected' %}
+                        {% if hr %}
+                        <form method="POST" action="{% url 'visitor_checkin' v.pk %}" class="inline">{% csrf_token %}<input type="text" name="badge_no" maxlength="20" class="form-control" placeholder="Badge" aria-label="Badge number" size="6"> <button type="submit" class="btn btn-ghost btn-sm">Check in</button></form>
+                        {% endif %}
+                        <form method="POST" action="{% url 'visitor_cancel' v.pk %}" class="inline" onsubmit="return confirm('Cancel this visit?');">{% csrf_token %}<button type="submit" class="link-btn">Cancel</button></form>
+                    {% elif v.status == 'in' and hr %}
+                        <form method="POST" action="{% url 'visitor_checkout' v.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Check out</button></form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pager" aria-label="Pages">
+        {% if page_obj.has_previous %}<a class="btn btn-ghost btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+        <span class="muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="btn btn-ghost btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="empty"><p>No visitors.</p><a href="{% url 'visitor_add' %}" class="btn btn-primary">Register a visitor</a></div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Labels{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Labels</h1>
+        <p class="page-sub">Tag tasks (for example Bug, Design, Urgent) and filter by them on the dashboard.</p>
+    </div>
+    <a href="{% url 'project_list' %}" class="btn btn-ghost">Back to projects</a>
+</div>
+
+<div class="card">
+    {% if labels %}
+    <ul class="label-list">
+        {% for label in labels %}
+        <li>
+            <a href="{% url 'dashboard' %}?label={{ label.pk }}" class="chip chip-lg"><span class="dot" style="background: {{ label.color }}"></span>{{ label.name }}</a>
+            <span class="muted">{{ label.task_count }} task{{ label.task_count|pluralize }}</span>
+            {% if user_is_manager %}
+            <form method="POST" action="{% url 'label_delete' label.pk %}" onsubmit="return confirm('Delete this label? It is removed from all tasks.');">
+                {% csrf_token %}
+                <button type="submit" class="link-btn">Delete</button>
+            </form>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">No labels yet.</p>
+    {% endif %}
+
+    {% if user_is_manager %}
+    <form method="POST" action="{% url 'label_add' %}" class="inline-form label-form">
+        {% csrf_token %}
+        <div class="field grow">
+            <label for="{{ form.name.id_for_label }}">Name</label>
+            {{ form.name }}
+        </div>
+        <div class="field">
+            <label for="{{ form.color.id_for_label }}">Color</label>
+            {{ form.color }}
+        </div>
+        <button type="submit" class="btn btn-primary">Add label</button>
+    </form>
+    {% else %}
+    <p class="help">Only managers can add or delete labels.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Projects{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Projects</h1>
+        <p class="page-sub">Group tasks and see progress for each project.</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'label_list' %}" class="btn btn-ghost">Labels</a>
+        {% if user_is_manager %}<a href="{% url 'project_add' %}" class="btn btn-primary">Add project</a>{% endif %}
+    </div>
+</div>
+
+{% if projects %}
+<div class="project-grid">
+    {% for project in projects %}
+    <article class="card project-card">
+        <h2 class="card-title">{{ project.name }}</h2>
+        {% if project.description %}<p class="muted">{{ project.description|truncatechars:120 }}</p>{% endif %}
+        <div class="overall-row">
+            <span class="muted">{{ project.done }} of {{ project.total }} task{{ project.total|pluralize }} done</span>
+            <strong>{{ project.progress }}%</strong>
+        </div>
+        <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ project.progress }}" aria-label="Progress for {{ project.name }}"><span style="width: {{ project.progress }}%;"></span></div>
+        {% if project.budget_info %}
+        <div class="overall-row">
+            <span class="muted">Budget {{ currency }}{{ project.budget_info.spent|floatformat:"2g" }} of {{ currency }}{{ project.budget_info.budget|floatformat:"2g" }}</span>
+            <strong class="{% if project.budget_info.state == 'over' %}overdue{% endif %}">{{ project.budget_info.percent }}%</strong>
+        </div>
+        <div class="meter meter-{{ project.budget_info.state }}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ project.budget_info.bar }}" aria-label="Budget used for {{ project.name }}"><span style="width: {{ project.budget_info.bar }}%;"></span></div>
+        {% endif %}
+        <div class="project-actions">
+            <a href="{% url 'dashboard' %}?project={{ project.pk }}" class="btn btn-ghost btn-sm">Tasks</a>
+            <a href="{% url 'board' %}?project={{ project.pk }}" class="btn btn-ghost btn-sm">Board</a>
+            {% if user_is_manager %}
+            <a href="{% url 'project_budget' project.pk %}" class="btn btn-ghost btn-sm">Budget</a>
+            <a href="{% url 'project_edit' project.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+            <a href="{% url 'project_delete' project.pk %}" class="btn btn-ghost btn-sm">Delete</a>
+            {% endif %}
+        </div>
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="empty">
+        <p>No projects yet. Projects let you group related tasks and track them together.</p>
+        {% if user_is_manager %}<a href="{% url 'project_add' %}" class="btn btn-primary">Add project</a>{% else %}<p class="muted">Ask a manager to create one.</p>{% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

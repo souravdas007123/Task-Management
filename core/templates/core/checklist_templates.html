@@ -1,0 +1,23 @@
+{% extends 'core/base.html' %}
+{% block title %}Checklist templates{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Checklist templates</h1>
+        <p class="page-sub">One step per line, written as <strong>Owner | Step</strong>. Owner is HR, IT, Manager or Employee. Changes apply to checklists started from now on.</p>
+    </div>
+    <div class="head-actions"><a href="{% url 'checklist_list' %}" class="btn btn-ghost">Back</a></div>
+</div>
+{% if errors %}<div class="form-error-box" role="alert">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+<form method="POST" novalidate>
+    {% csrf_token %}
+    {% for kind, label, text in sections %}
+    <section class="card form-card">
+        <h2 class="card-title"><label for="t_{{ kind }}">{{ label }}</label></h2>
+        <textarea id="t_{{ kind }}" name="{{ kind }}" rows="10" class="form-control">{{ text }}</textarea>
+        <div class="help">Up to {{ max_items }} steps.</div>
+    </section>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">Save templates</button>
+</form>
+{% endblock %}

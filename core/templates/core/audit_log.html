@@ -1,0 +1,53 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Audit log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Audit log</h1>
+        <p class="page-sub">Everything that was changed on tasks, newest first.</p>
+    </div>
+</div>
+
+<section class="card">
+    <form method="GET" class="filter-bar" role="search">
+        <input type="search" name="q" value="{{ current.q }}" class="form-control grow" placeholder="Search the log" aria-label="Search">
+        <select name="actor" class="form-control" aria-label="Person">
+            <option value="">Everyone</option>
+            {% for u in users %}<option value="{{ u.pk }}" {% if current.actor == u.pk %}selected{% endif %}>{{ u.username }}</option>{% endfor %}
+        </select>
+        <input type="date" name="from" value="{{ current.from }}" class="form-control" aria-label="From date">
+        <input type="date" name="to" value="{{ current.to }}" class="form-control" aria-label="To date">
+        <button type="submit" class="btn btn-primary">Apply</button>
+        {% if current.q or current.actor or current.from or current.to %}<a href="{% url 'audit_log' %}" class="btn btn-ghost">Clear</a>{% endif %}
+    </form>
+
+    {% if entries %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">Task</th><th scope="col">What happened</th></tr></thead>
+            <tbody>
+                {% for e in entries %}
+                <tr>
+                    <td class="nowrap">{{ e.created_at|date:"d M Y, H:i" }}</td>
+                    <td>{{ e.actor.username|default:"System" }}</td>
+                    <td><a href="{% url 'task_detail' e.task.pk %}">#{{ e.task.pk }} {{ e.task.title|truncatechars:40 }}</a></td>
+                    <td>{{ e.message }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pager" aria-label="Pages">
+        {% if page_obj.has_previous %}<a class="btn btn-ghost btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+        <span class="muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="btn btn-ghost btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="empty"><p>Nothing matches these filters.</p></div>
+    {% endif %}
+</section>
+{% endblock %}

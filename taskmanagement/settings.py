@@ -21,12 +21,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-v&c@r)8xirq5k69u4lr-2no+%ks0+z34i9nr6sm90$m@jc6+r7'
+# Production mein DJANGO_SECRET_KEY environment variable zaroor set karo.
+# Local development ke liye neeche wali insecure fallback key use hoti hai.
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-v&c@r)8xirq5k69u4lr-2no+%ks0+z34i9nr6sm90$m@jc6+r7',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Default True rakha hai taaki local run pehle jaisa chale; production mein DJANGO_DEBUG=False set karo.
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
-ALLOWED_HOSTS = []
+# Production mein comma-separated hosts do, e.g. DJANGO_ALLOWED_HOSTS=example.com,www.example.com
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if h.strip()]
 
 
 # Application definition
@@ -63,6 +70,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.app_context',
             ],
         },
     },
@@ -74,12 +82,27 @@ WSGI_APPLICATION = 'taskmanagement.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Default SQLite hai (local ke liye). Office/production mein PostgreSQL ke liye DJANGO_DB_ENGINE=postgres set karo
+# aur DJANGO_DB_NAME, DJANGO_DB_USER, DJANGO_DB_PASSWORD, DJANGO_DB_HOST, DJANGO_DB_PORT do (psycopg install hona chahiye).
+if os.environ.get('DJANGO_DB_ENGINE', 'sqlite').lower() in ('postgres', 'postgresql'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DJANGO_DB_NAME', 'taskboard'),
+            'USER': os.environ.get('DJANGO_DB_USER', 'taskboard'),
+            'PASSWORD': os.environ.get('DJANGO_DB_PASSWORD', ''),
+            'HOST': os.environ.get('DJANGO_DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DJANGO_DB_PORT', '5432'),
+            'CONN_MAX_AGE': 60,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -106,7 +129,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Attendance aur due dates local samay se chalte hain. Doosre desh ke liye DJANGO_TIME_ZONE set karo.
+TIME_ZONE = os.environ.get('DJANGO_TIME_ZONE', 'Asia/Kolkata')
 
 USE_I18N = True
 
@@ -117,6 +141,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+# `python manage.py collectstatic` yahan files jama karta hai; production mein nginx isse serve karta hai
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -125,3 +151,57 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Employee ke private documents (PAN, Aadhaar...). MEDIA_ROOT ke bahar, web server se seedha serve nahi hote.
+PRIVATE_ROOT = os.environ.get('DJANGO_PRIVATE_ROOT', os.path.join(BASE_DIR, 'private'))
+
+# Budget aur expenses mein dikhne wala currency symbol (DJANGO_CURRENCY_SYMBOL se badlo, e.g. "$")
+CURRENCY_SYMBOL = os.environ.get('DJANGO_CURRENCY_SYMBOL', '₹')
+
+# Is amount se upar ki purchase request ko manager ke baad HR/finance ki doosri approval bhi chahiye
+PURCHASE_APPROVAL_LIMIT = os.environ.get('DJANGO_PURCHASE_LIMIT', '10000')
+# Salary advance zyada se zyada itne mahine ki gross salary tak
+ADVANCE_MAX_MONTHS = int(os.environ.get('DJANGO_ADVANCE_MAX_MONTHS', '3'))
+
+# Attendance: office kitne baje shuru hota hai, kitni der tak late nahi maana jata, aur din ke ghante
+ATTENDANCE_START = os.environ.get('DJANGO_WORK_START', '09:30')
+ATTENDANCE_GRACE_MINUTES = int(os.environ.get('DJANGO_WORK_GRACE_MINUTES', '15'))
+ATTENDANCE_FULL_DAY_HOURS = float(os.environ.get('DJANGO_FULL_DAY_HOURS', '8'))
+ATTENDANCE_HALF_DAY_HOURS = float(os.environ.get('DJANGO_HALF_DAY_HOURS', '4'))
+
+# Email notifications. Default console backend hai: email terminal mein print hota hai, kahin bhejta nahi.
+# Real email ke liye environment variables set karo (DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend,
+# DJANGO_EMAIL_HOST, DJANGO_EMAIL_PORT, DJANGO_EMAIL_USER, DJANGO_EMAIL_PASSWORD).
+EMAIL_BACKEND = os.environ.get('DJANGO_EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.environ.get('DJANGO_EMAIL_HOST', 'localhost')
+EMAIL_PORT = int(os.environ.get('DJANGO_EMAIL_PORT', '25'))
+EMAIL_HOST_USER = os.environ.get('DJANGO_EMAIL_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('DJANGO_EMAIL_PASSWORD', '')
+EMAIL_USE_TLS = os.environ.get('DJANGO_EMAIL_USE_TLS', 'False').lower() in ('1', 'true', 'yes')
+DEFAULT_FROM_EMAIL = os.environ.get('DJANGO_FROM_EMAIL', 'Office Hub <noreply@localhost>')
+
+# Login settings (dashboard, add/update task, report ab login ke baad hi khulenge)
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'login'
+
+
+# ---------------------------------------------------------------- production
+# DJANGO_DEBUG=False par ye apne aap lag jata hai. Local development (DEBUG=True) par kuch nahi badalta.
+_INSECURE_KEY_PREFIX = 'django-insecure-'
+
+if not DEBUG:
+    if SECRET_KEY.startswith(_INSECURE_KEY_PREFIX):
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured('Set DJANGO_SECRET_KEY to a long random value when DJANGO_DEBUG is False.')
+
+    # HTTPS ke peeche (nginx/load balancer) chalane ke liye. Sirf HTTP par test karna ho to DJANGO_HTTPS=False.
+    _https = os.environ.get('DJANGO_HTTPS', 'True').lower() in ('1', 'true', 'yes')
+    SESSION_COOKIE_SECURE = _https
+    CSRF_COOKIE_SECURE = _https
+    SECURE_SSL_REDIRECT = _https and os.environ.get('DJANGO_SSL_REDIRECT', 'False').lower() in ('1', 'true', 'yes')
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if _https else None
+    SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_HSTS_SECONDS', '0'))
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# https://office.example.com jaise origins (comma-separated), agar app proxy ke peeche alag domain par ho
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()]

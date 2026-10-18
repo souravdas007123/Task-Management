@@ -1,0 +1,56 @@
+# Office server ke liye: PostgreSQL + app + nginx.
+#   1. .env.example ko .env naam se copy karo aur values bharo
+#   2. docker compose up -d --build
+#   3. docker compose exec web python manage.py createsuperuser
+# App http://server:8080 par milta hai. HTTPS ke liye nginx ke aage apna certificate/proxy lagao.
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: taskboard
+      POSTGRES_USER: taskboard
+      POSTGRES_PASSWORD: ${DJANGO_DB_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskboard -d taskboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DJANGO_DEBUG: "False"
+      DJANGO_DB_ENGINE: postgres
+      DJANGO_DB_HOST: db
+      DJANGO_DB_NAME: taskboard
+      DJANGO_DB_USER: taskboard
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - media:/app/media
+      - private:/app/private
+      - static:/app/staticfiles
+
+  nginx:
+    image: nginx:1.27
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - web
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - media:/app/media:ro
+      - static:/app/staticfiles:ro
+
+volumes:
+  dbdata:
+  media:
+  private:
+  static:

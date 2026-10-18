@@ -1,0 +1,43 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ cycle.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ cycle.name }}</h1>
+        <p class="page-sub">{{ cycle.start_date|date:"d M Y" }} - {{ cycle.end_date|date:"d M Y" }}. {% if cycle.is_open %}Open{% else %}Closed{% endif %}.</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'review_home' %}" class="btn btn-ghost">Reviews</a>
+        {% if cycle.is_open %}
+        <form method="POST" action="{% url 'cycle_generate' cycle.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-primary">Add everyone</button></form>
+        {% endif %}
+        <form method="POST" action="{% url 'cycle_toggle' cycle.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost">{% if cycle.is_open %}Close cycle{% else %}Reopen{% endif %}</button></form>
+        <form method="POST" action="{% url 'cycle_delete' cycle.pk %}" class="inline" onsubmit="return confirm('Delete this cycle and all its reviews?');">{% csrf_token %}<button type="submit" class="btn btn-ghost">Delete</button></form>
+    </div>
+</div>
+<div class="stat-row stat-row-3">
+    <div class="card stat"><span class="muted">Self reviews done</span><strong>{{ self_done }} / {{ reviews|length }}</strong></div>
+    <div class="card stat"><span class="muted">Manager reviews done</span><strong>{{ mgr_done }} / {{ reviews|length }}</strong></div>
+    <div class="card stat"><span class="muted">Average rating</span><strong>{% if average %}{{ average }}{% else %}-{% endif %}</strong></div>
+</div>
+<section class="card">
+    {% if reviews %}
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Employee</th><th scope="col">Reviewer</th><th scope="col" class="num">Self</th><th scope="col" class="num">Manager</th><th scope="col"><span class="sr-only">Open</span></th></tr></thead>
+        <tbody>
+        {% for r in reviews %}
+        <tr>
+            <td>{{ r.employee.get_full_name|default:r.employee.username }}</td>
+            <td>{% if r.reviewer %}{{ r.reviewer.get_full_name|default:r.reviewer.username }}{% else %}<span class="overdue">None</span>{% endif %}</td>
+            <td class="num">{% if r.self_submitted_at %}{{ r.self_rating }}{% else %}-{% endif %}</td>
+            <td class="num">{% if r.manager_submitted_at %}{{ r.manager_rating }}{% else %}-{% endif %}</td>
+            <td class="row-actions"><a href="{% url 'review_detail' r.pk %}" class="btn btn-ghost btn-sm">Open</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}
+    <div class="empty"><p>Nobody is in this cycle yet. "Add everyone" adds every active employee, with their reporting manager as the reviewer.</p></div>
+    {% endif %}
+</section>
+{% endblock %}

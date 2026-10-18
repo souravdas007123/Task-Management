@@ -1,0 +1,31 @@
+{% extends 'core/base.html' %}
+{% block title %}Expiring documents{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Expiring documents</h1>
+        <p class="page-sub">Employee documents that have expired or expire within 60 days.</p>
+    </div>
+    <div class="head-actions"><a href="{% url 'hr_employees' %}" class="btn btn-ghost">HR</a></div>
+</div>
+<section class="card">
+    {% if docs %}
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Employee</th><th scope="col">Document</th><th scope="col">Expires</th><th scope="col"><span class="sr-only">Open</span></th></tr></thead>
+        <tbody>
+        {% for d in docs %}
+        <tr>
+            <td>{{ d.user.get_full_name|default:d.user.username }}</td>
+            <td>{{ d.label }}</td>
+            <td class="nowrap">{{ d.expires_on|date:"d M Y" }}{% if d.state == 'expired' %} <span class="overdue">Expired</span>{% endif %}</td>
+            <td class="row-actions"><a href="{% url 'vault_person' d.user_id %}" class="btn btn-ghost btn-sm">Open</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}
+    <div class="empty"><p>Nothing is expiring soon.</p></div>
+    {% endif %}
+    <p class="help">To see one person's documents, open their row on the HR page and use "Documents".</p>
+</section>
+{% endblock %}

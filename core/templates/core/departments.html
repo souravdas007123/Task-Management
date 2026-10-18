@@ -1,0 +1,30 @@
+{% extends 'core/base.html' %}
+{% block title %}Departments{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1>Departments</h1><p class="page-sub">Used on employee records and the People page.</p></div>
+    <div class="head-actions"><a href="{% url 'hr_employees' %}" class="btn btn-ghost">Back to HR</a></div>
+</div>
+<section class="card">
+    {% if departments %}
+    <ul class="plain-list">
+        {% for d in departments %}
+        <li>
+            <span>{{ d.name }} <span class="muted">({{ d.people }} {{ d.people|pluralize:"person,people" }})</span></span>
+            <form method="POST" action="{% url 'department_delete' d.pk %}" class="inline" onsubmit="return confirm('Delete this department? People in it will have no department.');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">No departments yet.</p>
+    {% endif %}
+</section>
+<section class="card form-card">
+    <h2 class="card-title">Add a department</h2>
+    <form method="POST" novalidate class="inline-form">
+        {% csrf_token %}
+        <div class="field">{{ form.name }}{{ form.name.errors }}</div>
+        <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+</section>
+{% endblock %}

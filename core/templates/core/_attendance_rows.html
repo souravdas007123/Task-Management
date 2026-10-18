@@ -1,0 +1,32 @@
+<div class="table-wrap">
+    <table class="data">
+        <thead><tr><th scope="col">Date</th><th scope="col">Status</th><th scope="col">In</th><th scope="col">Out</th><th scope="col" class="num">Hours</th>{% if hr %}<th scope="col"><span class="sr-only">Actions</span></th>{% endif %}</tr></thead>
+        <tbody>
+            {% for r in rows %}
+            {% if r.status != 'before' %}
+            <tr>
+                <td class="nowrap">{{ r.date|date:"D, d M" }}</td>
+                <td>
+                    {% if r.status == 'present' or r.status == 'open' %}<span class="pill"><span class="dot c-completed"></span>{{ r.label }}</span>
+                    {% elif r.status == 'half' or r.status == 'short' or r.status == 'no_checkout' %}<span class="pill"><span class="dot c-pending"></span>{{ r.label }}</span>
+                    {% elif r.status == 'absent' %}<span class="pill"><span class="dot p-high"></span>{{ r.label }}</span>
+                    {% elif r.status == 'leave' %}<span class="pill"><span class="dot c-progress"></span>{{ r.label }}</span>
+                    {% else %}<span class="muted">{{ r.label }}</span>{% endif %}
+                    {% if r.late %}<span class="overdue-tag">Late</span>{% endif %}
+                    {% if r.record and r.record.mode == 'wfh' %}<span class="chip">WFH</span>{% endif %}
+                </td>
+                <td class="nowrap">{% if r.record %}{{ r.record.check_in|time:"H:i" }}{% else %}-{% endif %}</td>
+                <td class="nowrap">{% if r.record and r.record.check_out %}{{ r.record.check_out|time:"H:i" }}{% else %}-{% endif %}</td>
+                <td class="num">{% if r.hours is not None %}{{ r.hours|floatformat:1 }}{% else %}-{% endif %}</td>
+                {% if hr %}
+                <td class="row-actions">
+                    <a href="{% url 'attendance_edit' person.pk r.date|date:'Y-m-d' %}" class="btn btn-ghost btn-sm">{% if r.record %}Edit{% else %}Add{% endif %}</a>
+                    {% if r.record %}<form method="POST" action="{% url 'attendance_delete' r.record.pk %}" class="inline" onsubmit="return confirm('Delete this entry?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>{% endif %}
+                </td>
+                {% endif %}
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

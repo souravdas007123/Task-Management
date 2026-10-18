@@ -1,0 +1,87 @@
+{% extends 'core/base.html' %}
+{% block title %}Salary advance{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Salary advance</h1>
+        <p class="page-sub">Money paid ahead of salary and repaid in equal monthly instalments from your payslip.{% if limit %} You can ask for up to {{ currency }}{{ limit|floatformat:"2g" }}.{% endif %}</p>
+    </div>
+    <div class="head-actions"><a href="{% url 'advance_add' %}" class="btn btn-primary">Request an advance</a></div>
+</div>
+
+{% if queue %}
+<section class="card">
+    <h2 class="card-title">Waiting for your decision</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Employee</th><th scope="col" class="num">Amount</th><th scope="col" class="num">Months</th><th scope="col">Reason</th><th scope="col">Action</th></tr></thead>
+        <tbody>
+        {% for a in queue %}
+        <tr>
+            <td>{{ a.user.get_full_name|default:a.user.username }}</td>
+            <td class="num">{{ currency }}{{ a.amount|floatformat:"2g" }}</td>
+            <td class="num">{{ a.installments }} (about {{ currency }}{{ a.emi|floatformat:"2g" }} each)</td>
+            <td>{{ a.reason|default:"-" }}</td>
+            <td>
+                <form method="POST" action="{% url 'advance_approve' a.pk %}" class="stack-form">
+                    {% csrf_token %}
+                    <input type="month" name="first_month" value="{{ default_month }}" class="form-control" aria-label="First deduction month">
+                    <input type="text" name="note" maxlength="300" class="form-control" placeholder="Note (optional)" aria-label="Note">
+                    <button type="submit" class="btn btn-primary btn-sm">Approve</button>
+                </form>
+                <form method="POST" action="{% url 'advance_reject' a.pk %}" class="inline" onsubmit="var n = prompt('Reason (optional)'); if (n === null) { return false; } this.note.value = n;">{% csrf_token %}<input type="hidden" name="note" value=""><button type="submit" class="link-btn">Reject</button></form>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+</section>
+{% endif %}
+
+{% if running %}
+<section class="card">
+    <h2 class="card-title">Being repaid</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Employee</th><th scope="col" class="num">Amount</th><th scope="col" class="num">Repaid</th><th scope="col" class="num">Balance</th><th scope="col">Starts</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        {% for a in running %}
+        <tr>
+            <td>{{ a.user.get_full_name|default:a.user.username }}</td>
+            <td class="num">{{ currency }}{{ a.amount|floatformat:"2g" }}</td>
+            <td class="num">{{ currency }}{{ a.repaid|floatformat:"2g" }}</td>
+            <td class="num">{{ currency }}{{ a.balance|floatformat:"2g" }}</td>
+            <td>{{ a.first_month|date:"M Y" }}</td>
+            <td class="row-actions"><form method="POST" action="{% url 'advance_close' a.pk %}" class="inline" onsubmit="return confirm('Stop further deductions for this advance?');">{% csrf_token %}<button type="submit" class="link-btn">Close early</button></form></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+</section>
+{% endif %}
+
+<section class="card">
+    <h2 class="card-title">My advances</h2>
+    {% if mine %}
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Requested</th><th scope="col" class="num">Amount</th><th scope="col" class="num">Instalment</th><th scope="col" class="num">Balance</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        {% for a in mine %}
+        <tr>
+            <td class="nowrap">{{ a.created_at|date:"d M Y" }}</td>
+            <td class="num">{{ currency }}{{ a.amount|floatformat:"2g" }}</td>
+            <td class="num">{{ a.installments }} x {{ currency }}{{ a.emi|floatformat:"2g" }}</td>
+            <td class="num">{% if a.status == 'approved' or a.status == 'closed' %}{{ currency }}{{ a.balance|floatformat:"2g" }}{% else %}-{% endif %}</td>
+            <td>
+                <span class="pill"><span class="dot {% if a.status == 'approved' %}c-completed{% elif a.status == 'pending' %}c-pending{% elif a.status == 'closed' %}c-hold{% else %}p-high{% endif %}"></span>{% if a.status == 'approved' and not a.open and a.balance == 0 %}Repaid{% else %}{{ a.get_status_display }}{% endif %}</span>
+                {% if a.status == 'approved' %}<div class="task-meta"><span class="muted">Starts {{ a.first_month|date:"M Y" }}</span></div>{% endif %}
+                {% if a.review_note %}<div class="task-meta"><span class="muted">{{ a.review_note }}</span></div>{% endif %}
+            </td>
+            <td class="row-actions">{% if a.status == 'pending' %}<form method="POST" action="{% url 'advance_cancel' a.pk %}" class="inline">{% csrf_token %}<button type="submit" class="link-btn">Cancel</button></form>{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}
+    <div class="empty"><p>You have not asked for an advance.</p><a href="{% url 'advance_add' %}" class="btn btn-primary">Request an advance</a></div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Workload{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Workload</h1>
+        <p class="page-sub">Open work due in the next {{ due_soon_days }} days (plus anything overdue), compared with each person's weekly capacity. Week of {{ week_start|date:"d M Y" }}.</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'timeline' %}" class="btn btn-ghost">Timeline</a>
+    </div>
+</div>
+
+<section class="card">
+    {% if rows %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead>
+                <tr>
+                    <th scope="col">Person</th>
+                    <th scope="col" class="num">Open tasks</th>
+                    <th scope="col" class="num">Overdue</th>
+                    <th scope="col" class="num">Hours left</th>
+                    <th scope="col" class="num">Due soon (h)</th>
+                    <th scope="col" class="num">Capacity (h/wk)</th>
+                    <th scope="col">Load</th>
+                    <th scope="col" class="num">Logged this week</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rows %}
+                <tr>
+                    <td>
+                        <div class="assignee"><span class="avatar" aria-hidden="true">{{ r.username|slice:":1" }}</span><a href="{% url 'dashboard' %}?assigned=other&amp;q={{ r.username|urlencode }}">{{ r.username }}</a>{% if r.away %} <span class="chip">On leave</span>{% endif %}</div>
+                        {% if r.unestimated %}<div class="task-meta"><span class="muted">{{ r.unestimated }} task{{ r.unestimated|pluralize }} without an estimate</span></div>{% endif %}
+                    </td>
+                    <td class="num">{{ r.open_tasks }}</td>
+                    <td class="num">{% if r.overdue %}<span class="overdue">{{ r.overdue }}</span>{% else %}0{% endif %}</td>
+                    <td class="num">{{ r.remaining }}</td>
+                    <td class="num">{{ r.due_soon }}</td>
+                    <td class="num">{{ r.capacity }}</td>
+                    <td>
+                        <div class="progress-cell">
+                            <div class="meter meter-sm load-{{ r.level }}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ r.bar }}" aria-label="Load for {{ r.username }}"><span style="width: {{ r.bar }}%;"></span></div>
+                            <small class="{% if r.level == 'over' %}overdue{% endif %}">{{ r.utilization }}%</small>
+                        </div>
+                    </td>
+                    <td class="num">{{ r.logged_week }}h</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="help">Hours left = estimate minus progress, for tasks that have an estimate. Load above {{ high_load }}% is high, above 100% is over capacity. Capacity is set on each person's profile in the admin site.</p>
+    {% else %}
+    <div class="empty"><p>No active users yet.</p></div>
+    {% endif %}
+</section>
+{% endblock %}

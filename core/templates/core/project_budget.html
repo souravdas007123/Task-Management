@@ -1,0 +1,94 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Budget: {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ project.name }}</h1>
+        <p class="page-sub">Budget and spending for this project.</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'budget_overview' %}" class="btn btn-ghost">All budgets</a>
+        <a href="{% url 'project_edit' project.pk %}" class="btn btn-ghost">Edit budget</a>
+        <a href="{% url 'expense_add' %}?project={{ project.pk }}" class="btn btn-primary">Add expense</a>
+    </div>
+</div>
+
+{% if s.state == 'over' %}
+<div class="notice notice-danger" role="alert">This project is {{ currency }}{{ s.over_by|floatformat:"2g" }} over its budget.</div>
+{% elif s.state == 'warning' %}
+<div class="notice notice-warn" role="status">{{ s.percent }}% of the budget is used. Less than 20% is left.</div>
+{% endif %}
+{% if s.unrated_minutes %}
+<div class="notice notice-warn" role="status">{{ s.unrated_hours }}h of logged time has no hourly rate, so it is not counted in labour cost. Set the rate on the person's profile in the admin site.</div>
+{% endif %}
+
+<div class="stat-row">
+    <div class="card stat"><span class="muted">Budget</span><strong>{% if s.has_budget %}{{ currency }}{{ s.budget|floatformat:"2g" }}{% else %}Not set{% endif %}</strong></div>
+    <div class="card stat"><span class="muted">Spent</span><strong>{{ currency }}{{ s.spent|floatformat:"2g" }}</strong></div>
+    <div class="card stat"><span class="muted">Remaining</span><strong class="{% if s.over_by %}overdue{% endif %}">{% if s.has_budget %}{{ currency }}{{ s.remaining|floatformat:"2g" }}{% else %}-{% endif %}</strong></div>
+    <div class="card stat"><span class="muted">Waiting for review</span><strong>{{ currency }}{{ s.expenses_pending|floatformat:"2g" }}</strong></div>
+</div>
+
+{% if s.has_budget %}
+<section class="card">
+    <div class="overall-row"><span class="muted">Budget used</span><strong>{{ s.percent }}%</strong></div>
+    <div class="meter meter-{{ s.state }}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ s.bar }}" aria-label="Budget used"><span style="width: {{ s.bar }}%;"></span></div>
+</section>
+{% else %}
+<section class="card"><p class="muted">No budget is set. <a href="{% url 'project_edit' project.pk %}">Set one</a> to get alerts at 80% and 100%.</p></section>
+{% endif %}
+
+<div class="two-col">
+    <section class="card" aria-labelledby="split-title">
+        <h2 class="card-title" id="split-title">Where the money went</h2>
+        <dl class="facts">
+            <dt>Approved expenses</dt><dd>{{ currency }}{{ s.expenses_approved|floatformat:"2g" }}</dd>
+            <dt>Labour cost</dt><dd>{{ currency }}{{ s.labor_cost|floatformat:"2g" }}</dd>
+        </dl>
+        {% if s.categories %}
+        <h3 class="sub-title">Expenses by category</h3>
+        <ul class="plain-list">
+            {% for c in s.categories %}<li><span>{{ c.label }}</span><strong>{{ currency }}{{ c.total|floatformat:"2g" }}</strong></li>{% endfor %}
+        </ul>
+        {% endif %}
+        <p class="help">Planned effort: {{ s.estimated_hours|floatformat:"-2" }}h estimated, {{ s.logged_hours }}h logged.</p>
+    </section>
+
+    <section class="card" aria-labelledby="labour-title">
+        <h2 class="card-title" id="labour-title">Labour (logged time)</h2>
+        {% if s.labor_rows %}
+        <div class="table-wrap">
+            <table class="data">
+                <thead><tr><th scope="col">Person</th><th scope="col" class="num">Hours</th><th scope="col" class="num">Rate / h</th><th scope="col" class="num">Cost</th></tr></thead>
+                <tbody>
+                    {% for r in s.labor_rows %}
+                    <tr>
+                        <td>{{ r.username }}</td>
+                        <td class="num">{{ r.hours }}</td>
+                        <td class="num">{% if r.rate is not None %}{{ currency }}{{ r.rate|floatformat:"2g" }}{% else %}<span class="muted">Not set</span>{% endif %}</td>
+                        <td class="num">{% if r.cost is not None %}{{ currency }}{{ r.cost|floatformat:"2g" }}{% else %}<span class="muted">-</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="muted">No time has been logged on this project's tasks.</p>
+        {% endif %}
+    </section>
+</div>
+
+<section class="card" aria-labelledby="exp-title">
+    <div class="card-title-row">
+        <h2 class="card-title" id="exp-title">Expenses</h2>
+        <a href="{% url 'expense_list' %}?project={{ project.pk }}" class="btn btn-ghost btn-sm">Open in Expenses</a>
+    </div>
+    {% if expenses %}
+        {% include 'core/_expense_table.html' with manager=True next_url=request.get_full_path %}
+    {% else %}
+        <p class="muted">No expenses for this project yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

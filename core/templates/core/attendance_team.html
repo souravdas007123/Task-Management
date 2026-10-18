@@ -1,0 +1,40 @@
+{% extends 'core/base.html' %}
+{% block title %}Team attendance{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Team attendance: {{ label }}</h1>
+        <p class="page-sub">{% if whole_company %}Everyone in the company.{% else %}The people who report to you.{% endif %}</p>
+    </div>
+    <div class="head-actions">
+        <a href="?month={{ prev_key }}" class="btn btn-ghost">&larr; Earlier</a>
+        <a href="?month={{ next_key }}" class="btn btn-ghost">Later &rarr;</a>
+        <a href="{% url 'attendance_team_export' %}?month={{ month_key }}" class="btn btn-ghost">Download CSV</a>
+    </div>
+</div>
+<section class="card">
+    {% if rows %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">Employee</th><th scope="col" class="num">Present</th><th scope="col" class="num">Half days</th><th scope="col" class="num">Late</th><th scope="col" class="num">Absent</th><th scope="col" class="num">On leave</th><th scope="col" class="num">No check-out</th><th scope="col" class="num">Hours</th></tr></thead>
+            <tbody>
+                {% for r in rows %}
+                <tr>
+                    <td><a href="{% url 'attendance_person' r.user.pk %}?month={{ month_key }}">{{ r.user.get_full_name|default:r.user.username }}</a></td>
+                    <td class="num">{{ r.summary.present|floatformat:"-1" }}</td>
+                    <td class="num">{{ r.summary.half }}</td>
+                    <td class="num">{% if r.summary.late %}<span class="overdue">{{ r.summary.late }}</span>{% else %}0{% endif %}</td>
+                    <td class="num">{% if r.summary.absent %}<span class="overdue">{{ r.summary.absent }}</span>{% else %}0{% endif %}</td>
+                    <td class="num">{{ r.summary.leave }}</td>
+                    <td class="num">{{ r.summary.no_checkout }}</td>
+                    <td class="num">{{ r.summary.hours|floatformat:"-1" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty"><p>Nobody reports to you yet. HR sets the reporting manager on each employee.</p></div>
+    {% endif %}
+</section>
+{% endblock %}

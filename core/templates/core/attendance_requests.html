@@ -1,0 +1,57 @@
+{% extends 'core/base.html' %}
+{% block title %}Attendance requests{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Attendance requests</h1>
+        <p class="page-sub">Fix a missed check-in or check-out, or ask to work from home.</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'attendance_me' %}" class="btn btn-ghost">Attendance</a>
+        <a href="{% url 'request_add' %}" class="btn btn-primary">New request</a>
+    </div>
+</div>
+
+{% if to_review %}
+<section class="card">
+    <h2 class="card-title">Waiting for your review</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Employee</th><th scope="col">Request</th><th scope="col">Reason</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        {% for r in to_review %}
+        <tr>
+            <td>{{ r.user.get_full_name|default:r.user.username }}</td>
+            <td>{{ r.get_kind_display }}<div class="task-meta"><span class="muted">{{ r.date|date:"D, d M Y" }}{% if r.kind == 'regularize' %}, {{ r.check_in_time|time:"H:i" }} to {{ r.check_out_time|time:"H:i" }}{% endif %}</span></div></td>
+            <td>{{ r.reason }}</td>
+            <td class="row-actions">
+                <form method="POST" action="{% url 'request_approve' r.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Approve</button></form>
+                <form method="POST" action="{% url 'request_reject' r.pk %}" class="inline" onsubmit="var n = prompt('Reason for rejecting (optional)'); if (n === null) { return false; } this.note.value = n;">{% csrf_token %}<input type="hidden" name="note" value=""><button type="submit" class="btn btn-ghost btn-sm">Reject</button></form>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+</section>
+{% endif %}
+
+<section class="card">
+    <h2 class="card-title">My requests</h2>
+    {% if requests %}
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Day</th><th scope="col">Request</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        {% for r in requests %}
+        <tr>
+            <td class="nowrap">{{ r.date|date:"D, d M Y" }}</td>
+            <td>{{ r.get_kind_display }}{% if r.kind == 'regularize' %}<div class="task-meta"><span class="muted">{{ r.check_in_time|time:"H:i" }} to {{ r.check_out_time|time:"H:i" }}</span></div>{% endif %}<div class="task-meta"><span class="muted">{{ r.reason }}</span></div></td>
+            <td><span class="pill"><span class="dot {% if r.status == 'approved' %}c-completed{% elif r.status == 'pending' %}c-pending{% else %}p-high{% endif %}"></span>{{ r.get_status_display }}</span>{% if r.review_note %}<div class="task-meta"><span class="muted">{{ r.review_note }}</span></div>{% endif %}</td>
+            <td class="row-actions">{% if r.status == 'pending' %}<form method="POST" action="{% url 'request_cancel' r.pk %}" class="inline">{% csrf_token %}<button type="submit" class="link-btn">Cancel</button></form>{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}
+    <div class="empty"><p>No requests yet.</p><a href="{% url 'request_add' %}" class="btn btn-primary">New request</a></div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends 'core/base.html' %}
+{% block title %}Acknowledgements{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ doc.title }}</h1>
+        <p class="page-sub">Version {{ doc.version }}: {{ done }} of {{ total }} employees have acknowledged it.</p>
+    </div>
+    <div class="head-actions"><a href="{% url 'document_list' %}" class="btn btn-ghost">All documents</a></div>
+</div>
+<section class="card">
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">Employee</th><th scope="col">Status</th></tr></thead>
+            <tbody>
+            {% for row in rows %}
+            <tr>
+                <td>{{ row.user.get_full_name|default:row.user.username }}</td>
+                <td>{% if row.ack %}<span class="pill"><span class="dot c-completed"></span>{{ row.ack.acknowledged_at|date:"d M Y, H:i" }}</span>{% else %}<span class="pill"><span class="dot c-pending"></span>Pending</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

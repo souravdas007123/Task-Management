@@ -1,0 +1,58 @@
+{% extends 'core/base.html' %}
+{% block title %}Helpdesk{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Helpdesk</h1>
+        <p class="page-sub">{% if hr %}Requests from everyone. {{ unassigned }} waiting for someone to pick them up.{% else %}Raise an IT, HR, admin or finance request and follow it here.{% endif %}</p>
+    </div>
+    <div class="head-actions"><a href="{% url 'ticket_add' %}" class="btn btn-primary">Raise a ticket</a></div>
+</div>
+<section class="card">
+    <form method="GET" class="filter-bar" role="search">
+        <input type="search" name="q" value="{{ current.q }}" class="form-control grow" placeholder="Search subject or person" aria-label="Search">
+        <select name="scope" class="form-control" aria-label="Whose">
+            <option value="">All visible</option>
+            <option value="mine" {% if current.scope == 'mine' %}selected{% endif %}>Raised by me</option>
+            <option value="assigned" {% if current.scope == 'assigned' %}selected{% endif %}>Assigned to me</option>
+        </select>
+        <select name="status" class="form-control" aria-label="Status">
+            <option value="">Any status</option>
+            <option value="active" {% if current.status == 'active' %}selected{% endif %}>Open or in progress</option>
+            {% for v, l in status_choices %}<option value="{{ v }}" {% if current.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+        <select name="category" class="form-control" aria-label="Category"><option value="">Any category</option>{% for v, l in category_choices %}<option value="{{ v }}" {% if current.category == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+        <button type="submit" class="btn btn-primary">Apply</button>
+        {% if current.q or current.scope or current.status or current.category %}<a href="{% url 'ticket_list' %}" class="btn btn-ghost">Clear</a>{% endif %}
+    </form>
+    {% if tickets %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">#</th><th scope="col">Subject</th><th scope="col">Category</th><th scope="col">Priority</th><th scope="col">Status</th><th scope="col">Raised by</th><th scope="col">Assigned to</th></tr></thead>
+            <tbody>
+            {% for t in tickets %}
+            <tr>
+                <td class="nowrap">#{{ t.pk }}</td>
+                <td><a class="task-title" href="{% url 'ticket_detail' t.pk %}">{{ t.subject }}</a><div class="task-meta"><span class="muted">{{ t.created_at|date:"d M Y" }}</span></div></td>
+                <td>{{ t.get_category_display }}</td>
+                <td><span class="pill"><span class="dot p-{{ t.priority }}"></span>{{ t.get_priority_display }}</span></td>
+                <td><span class="pill"><span class="dot {% if t.status == 'open' %}c-pending{% elif t.status == 'in_progress' %}c-progress{% elif t.status == 'resolved' %}c-completed{% else %}c-hold{% endif %}"></span>{{ t.get_status_display }}</span></td>
+                <td>{{ t.raised_by.get_full_name|default:t.raised_by.username }}</td>
+                <td>{% if t.assigned_to %}{{ t.assigned_to.get_full_name|default:t.assigned_to.username }}{% else %}<span class="muted">-</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pager" aria-label="Pages">
+        {% if page_obj.has_previous %}<a class="btn btn-ghost btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+        <span class="muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="btn btn-ghost btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="empty"><p>No tickets.</p><a href="{% url 'ticket_add' %}" class="btn btn-primary">Raise a ticket</a></div>
+    {% endif %}
+</section>
+{% endblock %}

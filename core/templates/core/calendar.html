@@ -1,0 +1,43 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Calendar{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ month_name }} {{ year }}</h1>
+        <p class="page-sub">Tasks by due date.</p>
+    </div>
+    <div class="head-actions">
+        <a class="btn btn-ghost" href="?year={{ prev.year }}&amp;month={{ prev.month }}{% if mine %}&amp;mine=1{% endif %}" aria-label="Previous month">Previous</a>
+        <a class="btn btn-ghost" href="{% url 'task_calendar' %}{% if mine %}?mine=1{% endif %}">Today</a>
+        <a class="btn btn-ghost" href="?year={{ next.year }}&amp;month={{ next.month }}{% if mine %}&amp;mine=1{% endif %}" aria-label="Next month">Next</a>
+        <a class="btn btn-primary" href="{% url 'calendar_ics' %}{% if mine %}?mine=1{% endif %}" title="Download an .ics file you can import into Google, Outlook or Apple Calendar">Export to calendar</a>
+    </div>
+</div>
+
+<div class="card cal-card">
+    <div class="cal-scroll">
+        <table class="cal" aria-label="{{ month_name }} {{ year }}">
+            <thead>
+                <tr>{% for name in weekday_names %}<th scope="col">{{ name }}</th>{% endfor %}</tr>
+            </thead>
+            <tbody>
+                {% for week in weeks %}
+                <tr>
+                    {% for cell in week %}
+                    <td class="{% if not cell.in_month %}out{% endif %} {% if cell.is_today %}today{% endif %}">
+                        <div class="cal-day">{{ cell.date.day }}</div>
+                        {% for task in cell.tasks %}
+                        <a class="cal-task c-{{ task.status_css }}-soft {% if task.is_overdue %}is-overdue{% endif %}" href="{% url 'task_detail' task.pk %}" title="{{ task.title }} ({{ task.assigned_to.username }})">{{ task.title }}</a>
+                        {% endfor %}
+                        {% if cell.extra %}<div class="cal-more muted">+{{ cell.extra }} more</div>{% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

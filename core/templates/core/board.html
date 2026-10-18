@@ -1,0 +1,166 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Board{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Board</h1>
+        <p class="page-sub">Drag a card to another column to change its status. On touch screens, use the Move menu on the card.</p>
+    </div>
+    <form method="GET" class="head-actions">
+        <label class="check-inline"><input type="checkbox" name="mine" value="1" {% if mine %}checked{% endif %} onchange="this.form.submit()"> My tasks</label>
+        <select name="project" class="form-control" aria-label="Project" onchange="this.form.submit()">
+            <option value="">All projects</option>
+            {% for project in projects %}<option value="{{ project.pk }}" {% if current_project_id == project.pk %}selected{% endif %}>{{ project.name }}</option>{% endfor %}
+        </select>
+        <noscript><button type="submit" class="btn btn-ghost">Apply</button></noscript>
+    </form>
+</div>
+
+{% if truncated %}
+<p class="message">Showing the first {{ board_limit }} tasks. Filter by project or My tasks to see the rest.</p>
+{% endif %}
+
+<p id="board-error" class="form-error-box" role="alert" hidden></p>
+
+<div class="board">
+    {% for column in columns %}
+    <section class="kcol" data-status="{{ column.status }}" aria-label="{{ column.label }}">
+        <header class="kcol-head">
+            <span class="swatch c-{{ column.css }}"></span>
+            <h2>{{ column.label }}</h2>
+            <span class="kcount">{{ column.tasks|length }}</span>
+        </header>
+        <div class="klist">
+            {% for task in column.tasks %}
+            <article class="kcard" data-id="{{ task.pk }}" data-url="{% url 'api_task_status' task.pk %}" {% if task.can_edit %}draggable="true"{% endif %}>
+                <a class="kcard-title" href="{% url 'task_detail' task.pk %}">{{ task.title }}</a>
+                <div class="kcard-meta">
+                    <span class="pill"><span class="dot p-{{ task.priority_css }}"></span>{{ task.priority }}</span>
+                    {% if task.due_date %}<span class="{% if task.is_overdue %}overdue{% else %}muted{% endif %}">{{ task.due_date|date:"d M" }}</span>{% endif %}
+                </div>
+                {% if task.labels.all %}
+                <div class="task-meta">
+                    {% for label in task.labels.all %}<span class="chip"><span class="dot" style="background: {{ label.color }}"></span>{{ label.name }}</span>{% endfor %}
+                </div>
+                {% endif %}
+                <div class="kcard-foot">
+                    <span class="assignee"><span class="avatar" aria-hidden="true">{{ task.assigned_to.username|slice:":1" }}</span>{{ task.assigned_to.username }}</span>
+                    {% if task.can_edit %}
+                    <select class="move form-control" aria-label="Move {{ task.title }} to">
+                        <option value="">Move</option>
+                        {% for value, label in status_choices %}{% if value != column.status %}<option value="{{ value }}">{{ label }}</option>{% endif %}{% endfor %}
+                    </select>
+                    {% endif %}
+                </div>
+            </article>
+            {% empty %}
+            <p class="kempty muted">No tasks</p>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var csrf = "{{ csrf_token }}";
+    var errorBox = document.getElementById('board-error');
+    var dragged = null;
+
+    function showError(text) {
+        errorBox.textContent = text;
+        errorBox.hidden = false;
+        window.setTimeout(function () { errorBox.hidden = true; }, 6000);
+    }
+
+    function refreshColumn(col) {
+        var list = col.querySelector('.klist');
+        var cards = list.querySelectorAll('.kcard').length;
+        col.querySelector('.kcount').textContent = cards;
+        var empty = list.querySelector('.kempty');
+        if (cards === 0 && !empty) {
+            var p = document.createElement('p');
+            p.className = 'kempty muted';
+            p.textContent = 'No tasks';
+            list.appendChild(p);
+        } else if (cards > 0 && empty) {
+            empty.remove();
+        }
+    }
+
+    function move(card, targetCol) {
+        var fromCol = card.closest('.kcol');
+        if (fromCol === targetCol) { return; }
+        var targetList = targetCol.querySelector('.klist');
+        var status = targetCol.dataset.status;
+
+        // Optimistic: card pehle hi move, fail hua to wapas
+        targetList.insertBefore(card, targetList.firstChild);
+        refreshColumn(fromCol);
+        refreshColumn(targetCol);
+
+        fetch(card.dataset.url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify({status: status})
+        }).then(function (response) {
+            if (response.status === 409) { return response.json().then(function (data) { throw new Error(data.error || 'This task is blocked by another task.'); }); }
+            if (!response.ok) { throw new Error(response.status === 403 ? 'You cannot change this task.' : 'Could not update the task.'); }
+            return response.json();
+        }).then(function () {
+            // Move menu mein ab purana column hi option ban gaya hai, page reload se sahi ho jayega
+            card.querySelectorAll('select.move option').forEach(function (opt) {
+                opt.hidden = (opt.value === status);
+            });
+        }).catch(function (error) {
+            fromCol.querySelector('.klist').insertBefore(card, fromCol.querySelector('.klist').firstChild);
+            refreshColumn(fromCol);
+            refreshColumn(targetCol);
+            showError(error.message || 'Could not update the task.');
+        });
+    }
+
+    document.querySelectorAll('.kcard[draggable="true"]').forEach(function (card) {
+        card.addEventListener('dragstart', function (event) {
+            dragged = card;
+            card.classList.add('dragging');
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', card.dataset.id);
+        });
+        card.addEventListener('dragend', function () {
+            card.classList.remove('dragging');
+            document.querySelectorAll('.kcol').forEach(function (col) { col.classList.remove('over'); });
+        });
+    });
+
+    document.querySelectorAll('.kcol').forEach(function (col) {
+        col.addEventListener('dragover', function (event) { event.preventDefault(); col.classList.add('over'); });
+        col.addEventListener('dragleave', function (event) {
+            if (!col.contains(event.relatedTarget)) { col.classList.remove('over'); }
+        });
+        col.addEventListener('drop', function (event) {
+            event.preventDefault();
+            col.classList.remove('over');
+            if (dragged) { move(dragged, col); }
+            dragged = null;
+        });
+    });
+
+    document.querySelectorAll('select.move').forEach(function (select) {
+        select.addEventListener('change', function () {
+            var status = select.value;
+            select.value = '';
+            if (!status) { return; }
+            var card = select.closest('.kcard');
+            var target = document.querySelector('.kcol[data-status="' + status + '"]');
+            if (target) { move(card, target); }
+        });
+    });
+})();
+</script>
+{% endblock %}

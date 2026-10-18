@@ -1,0 +1,47 @@
+{% extends 'core/base.html' %}
+{% block title %}Documents{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Documents and policies</h1>
+        <p class="page-sub">{% if pending %}You still need to acknowledge {{ pending }} document{{ pending|pluralize }}.{% else %}Company policies, handbooks and forms.{% endif %}</p>
+    </div>
+    {% if hr %}<div class="head-actions"><a href="{% url 'document_add' %}" class="btn btn-primary">Upload document</a></div>{% endif %}
+</div>
+<section class="card">
+    {% if documents %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">Document</th><th scope="col">Category</th><th scope="col">Version</th><th scope="col">Acknowledgement</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+            <tbody>
+            {% for d in documents %}
+            <tr>
+                <td>
+                    <a class="task-title" href="{{ d.file.url }}" target="_blank" rel="noopener">{{ d.title }}</a>
+                    {% if d.description %}<div class="task-meta"><span class="muted">{{ d.description }}</span></div>{% endif %}
+                </td>
+                <td>{{ d.get_category_display }}</td>
+                <td>v{{ d.version }}<div class="task-meta"><span class="muted">{{ d.updated_at|date:"d M Y" }}</span></div></td>
+                <td>
+                    {% if not d.requires_ack %}<span class="muted">Not required</span>
+                    {% elif d.acknowledged %}<span class="pill"><span class="dot c-completed"></span>Acknowledged</span>
+                    {% else %}<span class="pill"><span class="dot c-pending"></span>Pending</span>{% endif %}
+                    {% if hr and d.requires_ack %}<div class="task-meta"><a href="{% url 'document_acks' d.pk %}">{{ d.ack_count }} of {{ employees }} done</a></div>{% endif %}
+                </td>
+                <td class="row-actions">
+                    {% if d.needs_ack %}<form method="POST" action="{% url 'document_ack' d.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-primary btn-sm">I have read this</button></form>{% endif %}
+                    {% if hr %}
+                    <a href="{% url 'document_edit' d.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+                    <form method="POST" action="{% url 'document_delete' d.pk %}" class="inline" onsubmit="return confirm('Delete this document?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty"><p>No documents yet.</p>{% if hr %}<a href="{% url 'document_add' %}" class="btn btn-primary">Upload document</a>{% endif %}</div>
+    {% endif %}
+</section>
+{% endblock %}

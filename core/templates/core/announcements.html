@@ -1,0 +1,28 @@
+{% extends 'core/base.html' %}
+{% block title %}Announcements{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Announcements</h1>
+        <p class="page-sub">News and notices from HR and management.</p>
+    </div>
+    {% if hr %}<div class="head-actions"><a href="{% url 'announcement_add' %}" class="btn btn-primary">New announcement</a></div>{% endif %}
+</div>
+{% for a in announcements %}
+<article class="card announcement {% if a.is_pinned %}is-pinned{% endif %}">
+    <div class="card-title-row">
+        <h2 class="card-title">{% if a.is_pinned %}<span class="chip">Pinned</span> {% endif %}{{ a.title }}{% if a.expired %} <span class="chip">Expired</span>{% endif %}</h2>
+        {% if hr %}
+        <span class="row-actions">
+            <a href="{% url 'announcement_edit' a.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+            <form method="POST" action="{% url 'announcement_delete' a.pk %}" class="inline" onsubmit="return confirm('Delete this announcement?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
+        </span>
+        {% endif %}
+    </div>
+    <p class="prose">{{ a.body|linebreaksbr }}</p>
+    <div class="muted">{% if a.created_by %}{{ a.created_by.get_full_name|default:a.created_by.username }}{% else %}HR{% endif %}, {{ a.created_at|date:"d M Y" }}{% if a.expires_on %}. Shown until {{ a.expires_on|date:"d M Y" }}{% endif %}</div>
+</article>
+{% empty %}
+<div class="card"><div class="empty"><p>No announcements right now.</p>{% if hr %}<a href="{% url 'announcement_add' %}" class="btn btn-primary">Post the first one</a>{% endif %}</div></div>
+{% endfor %}
+{% endblock %}

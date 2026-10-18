@@ -1,0 +1,46 @@
+{% extends 'core/base.html' %}
+{% block title %}Holidays{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Holidays {{ year }}</h1>
+        <p class="page-sub">Office holidays are not counted as leave days.</p>
+    </div>
+    <div class="head-actions">
+        <a href="?year={{ year|add:'-1' }}" class="btn btn-ghost">&larr; {{ year|add:'-1' }}</a>
+        <a href="?year={{ year|add:'1' }}" class="btn btn-ghost">{{ year|add:'1' }} &rarr;</a>
+    </div>
+</div>
+<section class="card">
+    {% if holidays %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">Date</th><th scope="col">Day</th><th scope="col">Holiday</th>{% if hr %}<th scope="col"><span class="sr-only">Actions</span></th>{% endif %}</tr></thead>
+            <tbody>
+                {% for h in holidays %}
+                <tr>
+                    <td class="nowrap">{{ h.date|date:"d M Y" }}</td>
+                    <td>{{ h.date|date:"l" }}</td>
+                    <td>{{ h.name }}</td>
+                    {% if hr %}<td class="row-actions"><form method="POST" action="{% url 'holiday_delete' h.pk %}" class="inline" onsubmit="return confirm('Remove this holiday?');">{% csrf_token %}<button type="submit" class="link-btn">Remove</button></form></td>{% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty"><p>No holidays added for {{ year }} yet.</p></div>
+    {% endif %}
+</section>
+{% if hr %}
+<section class="card" aria-labelledby="add-h">
+    <h2 class="card-title" id="add-h">Add a holiday</h2>
+    <form method="POST" action="{% url 'holiday_add' %}" class="inline-form">
+        {% csrf_token %}
+        <div class="field">{{ form.date }}</div>
+        <div class="field">{{ form.name }}</div>
+        <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+</section>
+{% endif %}
+{% endblock %}

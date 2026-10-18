@@ -1,0 +1,55 @@
+{% extends 'core/base.html' %}
+{% block title %}Ticket #{{ ticket.pk }}{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ ticket.subject }}</h1>
+        <p class="page-sub">Ticket #{{ ticket.pk }}, raised by {{ ticket.raised_by.get_full_name|default:ticket.raised_by.username }} on {{ ticket.created_at|date:"d M Y, H:i" }}.</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'ticket_list' %}" class="btn btn-ghost">All tickets</a>
+        {% if can_close %}<form method="POST" action="{% url 'ticket_close' ticket.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost">Close ticket</button></form>{% endif %}
+    </div>
+</div>
+<div class="two-col">
+    <section class="card">
+        <h2 class="card-title">Request</h2>
+        <p>{{ ticket.description|linebreaksbr }}</p>
+        <dl class="facts">
+            <dt>Category</dt><dd>{{ ticket.get_category_display }}</dd>
+            <dt>Priority</dt><dd>{{ ticket.get_priority_display }}</dd>
+            <dt>Status</dt><dd>{{ ticket.get_status_display }}</dd>
+            <dt>Assigned to</dt><dd>{% if ticket.assigned_to %}{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}{% else %}Nobody yet{% endif %}</dd>
+            {% if ticket.resolved_at %}<dt>Resolved</dt><dd>{{ ticket.resolved_at|date:"d M Y, H:i" }}</dd>{% endif %}
+        </dl>
+    </section>
+    {% if manage %}
+    <section class="card">
+        <h2 class="card-title">Manage</h2>
+        <form method="POST" action="{% url 'ticket_manage' ticket.pk %}" novalidate>
+            {% csrf_token %}
+            {% for field in manage %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}</div>{% endfor %}
+            <button type="submit" class="btn btn-primary">Update ticket</button>
+        </form>
+    </section>
+    {% endif %}
+</div>
+<section class="card">
+    <h2 class="card-title">Conversation</h2>
+    {% for c in comments %}
+    <div class="comment">
+        <div class="task-meta"><strong>{% if c.author %}{{ c.author.get_full_name|default:c.author.username }}{% else %}Someone{% endif %}</strong> <span class="muted">{{ c.created_at|date:"d M Y, H:i" }}</span></div>
+        <p>{{ c.body|linebreaksbr }}</p>
+    </div>
+    {% empty %}
+    <p class="muted">No replies yet.</p>
+    {% endfor %}
+    {% if ticket.status != 'closed' %}
+    <form method="POST" action="{% url 'ticket_comment' ticket.pk %}" novalidate>
+        {% csrf_token %}
+        <div class="field">{{ comment_form.body }}</div>
+        <button type="submit" class="btn btn-primary">Reply</button>
+    </form>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,37 +1,67 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Task Report</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-    <div class="container mt-4">
-        <h2>📊 Task Reports</h2>
-        <a href="{% url 'dashboard' %}" class="btn btn-secondary mb-3">Back to Dashboard</a>
-        
-        <div class="card p-3 shadow-sm">
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Title</th>
-                        <th>Assigned To</th>
-                        <th>Status</th>
-                        <th>Due Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for task in tasks %}
-                    <tr>
-                        <td>{{ task.title }}</td>
-                        <td>{{ task.assigned_to.username }}</td>
-                        <td>{{ task.status }}</td>
-                        <td>{{ task.due_date }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+{% extends 'core/base.html' %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Reports</h1>
+        <p class="page-sub">{{ tasks|length }} task{{ tasks|length|pluralize }}{% if status_filter %} with status {{ status_filter }}{% endif %}</p>
     </div>
-</body>
-</html>
+    <div class="head-actions no-print">
+        <a href="?{% if status_filter %}status={{ status_filter|urlencode }}&amp;{% endif %}export=csv" class="btn btn-ghost">Download CSV</a>
+        <button type="button" class="btn btn-ghost" onclick="window.print()">Print or save as PDF</button>
+        <a href="{% url 'analytics' %}" class="btn btn-primary">Analytics</a>
+    </div>
+</div>
+
+<nav class="filters no-print" aria-label="Filter by status">
+    <a class="filter" href="{% url 'task_report' %}" {% if not status_filter %}aria-current="true"{% endif %}>All</a>
+    {% for value, label in status_choices %}
+    <a class="filter" href="?status={{ value|urlencode }}" {% if value == status_filter %}aria-current="true"{% endif %}>{{ label }}</a>
+    {% endfor %}
+</nav>
+
+<div class="card">
+    {% if tasks %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead>
+                <tr>
+                    <th scope="col">Task</th>
+                    <th scope="col">Project</th>
+                    <th scope="col">Assigned to</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Priority</th>
+                    <th scope="col">Progress</th>
+                    <th scope="col">Due date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td><a class="task-title" href="{% url 'task_detail' task.pk %}">{{ task.title }}</a></td>
+                    <td>{{ task.project.name|default:"-" }}</td>
+                    <td>
+                        <div class="assignee">
+                            <span class="avatar" aria-hidden="true">{{ task.assigned_to.username|slice:":1" }}</span>
+                            {{ task.assigned_to.username }}
+                        </div>
+                    </td>
+                    <td><span class="pill"><span class="dot c-{{ task.status_css }}"></span>{{ task.status }}</span></td>
+                    <td>{{ task.priority }}</td>
+                    <td>{{ task.progress }}%</td>
+                    <td>{% if task.due_date %}<span class="{% if task.is_overdue %}overdue{% endif %}">{{ task.due_date|date:"d M Y" }}</span>{% else %}-{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">
+        <p>No tasks match this filter. Try another status.</p>
+        <a href="{% url 'task_report' %}" class="btn btn-ghost">Show all tasks</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

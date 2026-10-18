@@ -1,0 +1,59 @@
+{% extends 'core/base.html' %}
+{% block title %}Review{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ review.employee.get_full_name|default:review.employee.username }}</h1>
+        <p class="page-sub">{{ review.cycle.name }}, {{ review.cycle.start_date|date:"d M Y" }} - {{ review.cycle.end_date|date:"d M Y" }}.{% if not review.cycle.is_open %} This cycle is closed.{% endif %}</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% if hr and not is_employee %}{% url 'cycle_detail' review.cycle_id %}{% else %}{% url 'review_home' %}{% endif %}" class="btn btn-ghost">Back</a>
+    </div>
+</div>
+<div class="two-col">
+    <section class="card">
+        <h2 class="card-title">Self review</h2>
+        {% if review.self_submitted_at %}
+        <p><strong>Rating: {{ review.self_rating }} / 5</strong></p>
+        <p>{{ review.self_comment|linebreaksbr }}</p>
+        <p class="muted">Submitted {{ review.self_submitted_at|date:"d M Y" }}.</p>
+        {% elif self_form %}
+        <form method="POST" action="{% url 'review_self' review.pk %}" novalidate>
+            {% csrf_token %}
+            {% for field in self_form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
+            <button type="submit" class="btn btn-primary">Submit self review</button>
+            <p class="help">You cannot change it after submitting.</p>
+        </form>
+        {% else %}
+        <p class="muted">Not submitted yet.</p>
+        {% endif %}
+    </section>
+    <section class="card">
+        <h2 class="card-title">Manager review{% if review.reviewer %} by {{ review.reviewer.get_full_name|default:review.reviewer.username }}{% endif %}</h2>
+        {% if review.manager_submitted_at and show_manager %}
+        <p><strong>Rating: {{ review.manager_rating }} / 5</strong></p>
+        <p>{{ review.manager_comment|linebreaksbr }}</p>
+        {% if review.goals %}<h3 class="card-title">Goals for the next period</h3><p>{{ review.goals|linebreaksbr }}</p>{% endif %}
+        {% elif manager_form %}
+        <form method="POST" action="{% url 'review_manager' review.pk %}" novalidate>
+            {% csrf_token %}
+            {% for field in manager_form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
+            <button type="submit" class="btn btn-primary">Submit review</button>
+            <p class="help">The employee sees this once you submit.</p>
+        </form>
+        {% else %}
+        <p class="muted">{% if is_employee %}Your manager has not submitted the review yet.{% else %}Not submitted yet.{% endif %}</p>
+        {% endif %}
+        {% if hr and not review.manager_submitted_at %}
+        <form method="POST" action="{% url 'review_reviewer' review.pk %}" class="inline-form">
+            {% csrf_token %}
+            <select name="reviewer" class="form-control" aria-label="Reviewer">
+                <option value="">No reviewer (HR reviews)</option>
+                {% for p in people %}{% if p.pk != review.employee_id %}<option value="{{ p.pk }}" {% if p.pk == review.reviewer_id %}selected{% endif %}>{{ p.get_full_name|default:p.username }}</option>{% endif %}{% endfor %}
+            </select>
+            <button type="submit" class="btn btn-ghost">Change reviewer</button>
+        </form>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

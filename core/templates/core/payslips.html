@@ -1,0 +1,32 @@
+{% extends 'core/base.html' %}
+{% block title %}My payslips{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>My payslips</h1>
+        <p class="page-sub">Only you and HR can see these.</p>
+    </div>
+</div>
+<section class="card">
+    {% if payslips %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">Month</th><th scope="col" class="num">Gross</th><th scope="col" class="num">Deductions</th><th scope="col" class="num">Net pay</th><th scope="col"><span class="sr-only">Open</span></th></tr></thead>
+            <tbody>
+                {% for s in payslips %}
+                <tr>
+                    <td>{{ s.period|date:"F Y" }}</td>
+                    <td class="num">{{ currency }}{{ s.gross|floatformat:"2g" }}</td>
+                    <td class="num">{{ currency }}{{ s.total_deductions|floatformat:"2g" }}</td>
+                    <td class="num"><strong>{{ currency }}{{ s.net|floatformat:"2g" }}</strong></td>
+                    <td class="row-actions"><a href="{% url 'payslip_detail' s.pk %}" class="btn btn-ghost btn-sm">Open</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty"><p>No payslips yet. HR publishes them after each month's payroll.</p></div>
+    {% endif %}
+</section>
+{% endblock %}
