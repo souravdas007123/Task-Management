@@ -24,6 +24,27 @@
 </section>
 {% endif %}
 
+<section class="card" aria-labelledby="balance-title">
+    <h2 class="card-title" id="balance-title">Your leave balance for {{ year }}</h2>
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">Type</th><th scope="col" class="num">Yearly quota</th><th scope="col" class="num">Used</th><th scope="col" class="num">Waiting</th><th scope="col" class="num">Left</th></tr></thead>
+            <tbody>
+                {% for b in balance %}
+                <tr>
+                    <td>{{ b.label }}{% if not b.paid %} <span class="muted">(unpaid)</span>{% endif %}</td>
+                    <td class="num">{% if b.quota %}{{ b.quota }}{% else %}<span class="muted">No limit</span>{% endif %}</td>
+                    <td class="num">{{ b.used }}</td>
+                    <td class="num">{{ b.pending }}</td>
+                    <td class="num">{% if b.quota %}<strong class="{% if b.remaining <= 0 %}overdue{% endif %}">{{ b.remaining }}</strong>{% else %}<span class="muted">-</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="help">Counted in working days: weekends and office holidays are not counted. See the <a href="{% url 'holiday_list' %}">holiday list</a>.</p>
+</section>
+
 <section class="card">
     <form method="GET" class="filter-bar" role="search">
         <select name="status" class="form-control" aria-label="Status">
@@ -42,7 +63,7 @@
                     <th scope="col">Person</th>
                     <th scope="col">Type</th>
                     <th scope="col">Dates</th>
-                    <th scope="col" class="num">Days</th>
+                    <th scope="col" class="num">Working days</th>
                     <th scope="col">Status</th>
                     <th scope="col"><span class="sr-only">Actions</span></th>
                 </tr>
@@ -57,7 +78,7 @@
                         {% if leave.review_note %}<div class="task-meta"><span class="overdue">{{ leave.review_note }}</span></div>{% endif %}
                     </td>
                     <td class="nowrap">{{ leave.start_date|date:"d M Y" }}{% if leave.end_date != leave.start_date %} to {{ leave.end_date|date:"d M Y" }}{% endif %}</td>
-                    <td class="num">{{ leave.days }}</td>
+                    <td class="num">{{ leave.work_days }}</td>
                     <td><span class="pill"><span class="dot {% if leave.status == 'approved' %}c-completed{% elif leave.status == 'pending' %}c-pending{% else %}p-high{% endif %}"></span>{{ leave.get_status_display }}</span></td>
                     <td class="row-actions">
                         {% if leave.can_review %}

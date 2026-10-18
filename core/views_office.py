@@ -13,6 +13,7 @@ from django.views.decorators.http import require_POST
 
 from .filters import parse_int
 from .forms import LeaveRequestForm
+from .hr import holiday_set, leave_balance, working_days
 from .models import ActivityLog, LeaveRequest
 from .permissions import is_manager, manager_required
 from .services import display_name, notify, notify_many
@@ -56,11 +57,16 @@ def leave_list(request):
         status = ''
 
     page_obj = Paginator(scope, LEAVE_PAGE_SIZE).get_page(request.GET.get('page'))
-    for leave in page_obj.object_list:
+    page_leaves = list(page_obj.object_list)
+    if page_leaves:
+        holidays = holiday_set(min(l.start_date for l in page_leaves), max(l.end_date for l in page_leaves))
+    for leave in page_leaves:
+        leave.work_days = working_days(leave.start_date, leave.end_date, holidays)
         leave.can_cancel = leave.user_id == request.user.id and leave.status == 'pending'
         leave.can_review = manager and (leave.user_id != request.user.id or request.user.is_superuser)
 
     today = timezone.localdate()
+    balance = leave_balance(request.user, today.year)
     away = (
         LeaveRequest.objects.filter(
             status='approved', end_date__gte=today,
@@ -70,7 +76,9 @@ def leave_list(request):
     query = request.GET.copy()
     query.pop('page', None)
     return render(request, 'core/leave.html', {
-        'leaves': page_obj,
+        'leaves': page_leaves,
+        'balance': balance,
+        'year': today.year,
         'page_obj': page_obj,
         'querystring': query.urlencode(),
         'manager': manager,
@@ -86,7 +94,7 @@ def leave_list(request):
 @login_required
 def leave_add(request):
     if request.method == 'POST':
-        form = LeaveRequestForm(request.POST)
+        form = LeaveRequestForm(request.POST, user=request.user)
         if form.is_valid():
             leave = form.save(commit=False)
             leave.user = request.user

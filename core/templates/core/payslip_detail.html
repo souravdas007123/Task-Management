@@ -1,0 +1,52 @@
+{% extends 'core/base.html' %}
+{% block title %}Payslip {{ period }}{% endblock %}
+{% block content %}
+<div class="page-head no-print">
+    <div>
+        <h1>Payslip</h1>
+        <p class="page-sub">{{ period }}{% if payslip.status == 'draft' %} (draft, not visible to the employee){% endif %}</p>
+    </div>
+    <div class="head-actions">
+        {% if hr %}<a href="{% url 'payroll' %}?month={{ payslip.year }}-{{ payslip.month|stringformat:'02d' }}" class="btn btn-ghost">Back to payroll</a>{% else %}<a href="{% url 'my_payslips' %}" class="btn btn-ghost">All payslips</a>{% endif %}
+        <button type="button" class="btn btn-primary" onclick="window.print()">Print or save as PDF</button>
+    </div>
+</div>
+
+<section class="card payslip">
+    <div class="payslip-head">
+        <div>
+            <h2 class="card-title">{{ payslip.user.get_full_name|default:payslip.user.username }}</h2>
+            <div class="muted">{{ profile.designation|default:"" }}{% if profile.department %}{% if profile.designation %}, {% endif %}{{ profile.department.name }}{% endif %}</div>
+            {% if profile.employee_id %}<div class="muted">Employee ID {{ profile.employee_id }}</div>{% endif %}
+        </div>
+        <div class="payslip-period"><strong>{{ period }}</strong><div class="muted">{{ payslip.working_days }} working days{% if payslip.unpaid_days %}, {{ payslip.unpaid_days }} unpaid leave{% endif %}</div></div>
+    </div>
+
+    <div class="two-col">
+        <div>
+            <h3 class="sub-title">Earnings</h3>
+            <ul class="plain-list">
+                <li><span>Basic</span><strong>{{ currency }}{{ payslip.basic|floatformat:"2g" }}</strong></li>
+                <li><span>HRA</span><strong>{{ currency }}{{ payslip.hra|floatformat:"2g" }}</strong></li>
+                <li><span>Allowances</span><strong>{{ currency }}{{ payslip.allowances|floatformat:"2g" }}</strong></li>
+                <li><span><strong>Gross</strong></span><strong>{{ currency }}{{ payslip.gross|floatformat:"2g" }}</strong></li>
+                {% if payslip.bonus %}<li><span>Bonus</span><strong>{{ currency }}{{ payslip.bonus|floatformat:"2g" }}</strong></li>{% endif %}
+            </ul>
+        </div>
+        <div>
+            <h3 class="sub-title">Deductions</h3>
+            <ul class="plain-list">
+                <li><span>Provident fund</span><strong>{{ currency }}{{ payslip.pf|floatformat:"2g" }}</strong></li>
+                <li><span>Tax (TDS)</span><strong>{{ currency }}{{ payslip.tax|floatformat:"2g" }}</strong></li>
+                {% if payslip.other_deduction %}<li><span>Other</span><strong>{{ currency }}{{ payslip.other_deduction|floatformat:"2g" }}</strong></li>{% endif %}
+                {% if payslip.leave_deduction %}<li><span>Unpaid leave ({{ payslip.unpaid_days }} day{{ payslip.unpaid_days|pluralize }})</span><strong>{{ currency }}{{ payslip.leave_deduction|floatformat:"2g" }}</strong></li>{% endif %}
+                {% if payslip.extra_deduction %}<li><span>Extra deduction</span><strong>{{ currency }}{{ payslip.extra_deduction|floatformat:"2g" }}</strong></li>{% endif %}
+                <li><span><strong>Total</strong></span><strong>{{ currency }}{{ payslip.total_deductions|floatformat:"2g" }}</strong></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="payslip-net"><span>Net pay</span><strong>{{ currency }}{{ payslip.net|floatformat:"2g" }}</strong></div>
+    {% if payslip.adjustment_note %}<p class="help">Note: {{ payslip.adjustment_note }}</p>{% endif %}
+</section>
+{% endblock %}

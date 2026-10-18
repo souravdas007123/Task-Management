@@ -4,8 +4,10 @@ from django.core.validators import FileExtensionValidator
 from django.utils import timezone
 
 from .models import (
-    Attachment, ChecklistItem, Comment, Expense, Label, LeaveRequest, Project, Task, TimeEntry,
+    Attachment, ChecklistItem, Comment, Department, Expense, Holiday, Label, LeaveRequest, Payslip,
+    Project, SalaryStructure, Task, TimeEntry, UserProfile,
 )
+from .hr import check_leave_request
 from .permissions import visible_projects, visible_tasks
 from .validators import ALLOWED_ATTACHMENT_EXTENSIONS, validate_file_size
 
@@ -251,6 +253,10 @@ class LeaveRequestForm(forms.ModelForm):
             'reason': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional'}),
         }
 
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
     def clean(self):
         cleaned = super().clean()
         start = cleaned.get('start_date')
@@ -260,4 +266,149 @@ class LeaveRequestForm(forms.ModelForm):
                 self.add_error('end_date', 'The last day cannot be before the first day.')
             elif (end - start).days > 365:
                 self.add_error('end_date', 'A leave request cannot be longer than a year.')
+            elif self.user is not None and cleaned.get('kind'):
+                problem = check_leave_request(self.user, cleaned['kind'], start, end)
+                if problem:
+                    raise forms.ValidationError(problem)
         return cleaned
+
+
+class EmployeeForm(forms.ModelForm):
+    """HR employee ki details badalta hai (salary yahan nahi)."""
+    class Meta:
+        model = UserProfile
+        fields = [
+            'designation', 'department', 'employee_id', 'employment_type', 'joining_date', 'probation_end',
+            'reporting_manager', 'phone', 'emergency_name', 'emergency_phone',
+        ]
+        widgets = {
+            'designation': forms.TextInput(attrs={'class': 'form-control'}),
+            'department': forms.Select(attrs={'class': 'form-control'}),
+            'employee_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'employment_type': forms.Select(attrs={'class': 'form-control'}),
+            'joining_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'probation_end': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'reporting_manager': forms.Select(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'emergency_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'emergency_phone': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+        labels = {'designation': 'Post / designation', 'emergency_name': 'Emergency contact name',
+                  'emergency_phone': 'Emergency contact phone'}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        managers = User.objects.filter(is_active=True).exclude(pk=self.instance.user_id).order_by('username')
+        self.fields['reporting_manager'].queryset = managers
+        self.fields['reporting_manager'].empty_label = 'Nobody'
+        self.fields['department'].empty_label = 'No department'
+
+    def clean_employee_id(self):
+        value = (self.cleaned_data.get('employee_id') or '').strip()
+        return value or None
+
+    def clean(self):
+        cleaned = super().clean()
+        joining, probation = cleaned.get('joining_date'), cleaned.get('probation_end')
+        if joining and probation and probation < joining:
+            self.add_error('probation_end', 'The probation cannot end before the joining date.')
+        boss = cleaned.get('reporting_manager')
+        if boss and self.instance.user_id:
+            # Loop check: boss ke upar chalte hue ye employee mil jaye to loop banega
+            seen, current = set(), boss
+            while current is not None and current.pk not in seen:
+                if current.pk == self.instance.user_id:
+                    self.add_error('reporting_manager', 'That would make a reporting loop.')
+                    break
+                seen.add(current.pk)
+                profile = UserProfile.objects.filter(user=current).select_related('reporting_manager').first()
+                current = profile.reporting_manager if profile else None
+        return cleaned
+
+
+class MyContactForm(forms.ModelForm):
+    """Employee khud sirf apna phone aur emergency contact badal sakta hai."""
+    class Meta:
+        model = UserProfile
+        fields = ['phone', 'emergency_name', 'emergency_phone']
+        widgets = {
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'emergency_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'emergency_phone': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+        labels = {'emergency_name': 'Emergency contact name', 'emergency_phone': 'Emergency contact phone'}
+
+
+class SalaryStructureForm(forms.ModelForm):
+    class Meta:
+        model = SalaryStructure
+        fields = ['effective_from', 'basic', 'hra', 'allowances', 'pf_percent', 'tax', 'other_deduction', 'note']
+        widgets = {
+            'effective_from': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'basic': forms.NumberInput(attrs={'class': 'form-control', 'min': '0.01', 'step': '0.01'}),
+            'hra': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01'}),
+            'allowances': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01'}),
+            'pf_percent': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'max': '100', 'step': '0.01'}),
+            'tax': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01'}),
+            'other_deduction': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01'}),
+            'note': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Yearly increment'}),
+        }
+        labels = {'basic': 'Basic salary (per month)', 'hra': 'HRA (per month)', 'allowances': 'Other allowances (per month)'}
+        help_texts = {'effective_from': 'Applies to the whole month in which this date falls.'}
+
+    def clean_basic(self):
+        basic = self.cleaned_data['basic']
+        if basic <= 0:
+            raise forms.ValidationError('Basic salary must be more than zero.')
+        return basic
+
+    def clean(self):
+        cleaned = super().clean()
+        try:
+            gross = cleaned['basic'] + cleaned['hra'] + cleaned['allowances']
+            deductions = cleaned['basic'] * cleaned['pf_percent'] / 100 + cleaned['tax'] + cleaned['other_deduction']
+        except (KeyError, TypeError):
+            return cleaned
+        if deductions > gross:
+            raise forms.ValidationError('The monthly deductions are more than the gross salary.')
+        return cleaned
+
+
+class PayslipAdjustForm(forms.ModelForm):
+    class Meta:
+        model = Payslip
+        fields = ['bonus', 'extra_deduction', 'adjustment_note']
+        widgets = {
+            'bonus': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01'}),
+            'extra_deduction': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01'}),
+            'adjustment_note': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Shown on the payslip'}),
+        }
+        labels = {'extra_deduction': 'Extra deduction'}
+
+    def clean(self):
+        cleaned = super().clean()
+        bonus, extra = cleaned.get('bonus'), cleaned.get('extra_deduction')
+        if bonus is not None and extra is not None:
+            net = self.instance.gross + bonus - (self.instance.total_deductions - self.instance.extra_deduction) - extra
+            if net < 0:
+                raise forms.ValidationError('With these amounts the net pay would be negative.')
+        return cleaned
+
+
+class HolidayForm(forms.ModelForm):
+    class Meta:
+        model = Holiday
+        fields = ['date', 'name']
+        widgets = {
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Diwali'}),
+        }
+        error_messages = {'date': {'unique': 'There is already a holiday on this date.'}}
+
+
+class DepartmentForm(forms.ModelForm):
+    class Meta:
+        model = Department
+        fields = ['name']
+        widgets = {'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Sales'})}
+        error_messages = {'name': {'unique': 'That department already exists.'}}

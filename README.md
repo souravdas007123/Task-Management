@@ -97,3 +97,14 @@ After pulling: `python manage.py migrate` (adds migration 0009).
 5. Back up the `dbdata` and `media` volumes regularly, e.g. `docker compose exec db pg_dump -U taskboard taskboard > backup.sql`.
 
 Without Docker: `pip install -r requirements-prod.txt`, set `DJANGO_DEBUG=False`, `DJANGO_SECRET_KEY`, `DJANGO_DB_ENGINE=postgres` plus the `DJANGO_DB_*` variables, run `python manage.py migrate` and `collectstatic`, and serve `staticfiles/` and `media/` with nginx. With `DJANGO_DEBUG=False` the app refuses to start without a real secret key.
+
+## HR: people, leave balance, salary and payslips
+
+- **Roles**: a new `HR` role (set on the user's profile in the admin site). Only **admin and HR** can see salary data. Managers cannot. An employee sees only their own published payslips.
+- **People** (`/people/`, `/people/org/`): directory and org chart for everyone (post, department, who they report to). Phone numbers are visible to HR only. Everyone edits their own phone and emergency contact on **My profile**.
+- **HR** (`/hr/`): employee details (post, department, employee ID, joining date, manager), departments, holidays, leave policy, salary, payroll.
+- **Leave balance**: yearly quota per leave type (defaults: annual 18, sick 8, casual 6; unpaid and other have no limit). Days are working days: Saturday, Sunday and office holidays are not counted. A request that exceeds the balance is refused. Change quotas and which types are paid on **HR > Leave policy**.
+- **Salary**: per-month basic, HRA, allowances, PF % of basic, tax and other deductions. Each revision is a new row, so history is kept; a revision applies from the month of its start date.
+- **Payroll** (`HR > Payroll`): create draft payslips for a month, adjust bonus or extra deduction, recalculate, publish. Unpaid leave is deducted as gross / working days of the month per unpaid day. Payslips are snapshots, so later salary changes do not alter old ones. Employees can print or save a payslip as PDF from the browser. CSV export is available for HR.
+- Not included: pro-rating for mid-month joiners (adjust by hand), automatic tax slabs (enter TDS per month), bank transfer files.
+- Salary and payslip tables are deliberately not registered in the Django admin site.

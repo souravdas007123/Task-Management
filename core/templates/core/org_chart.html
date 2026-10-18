@@ -1,0 +1,26 @@
+{% extends 'core/base.html' %}
+{% block title %}Org chart{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Org chart</h1>
+        <p class="page-sub">Each person sits under the one they report to.</p>
+    </div>
+    <div class="head-actions"><a href="{% url 'people' %}" class="btn btn-ghost">People list</a></div>
+</div>
+<section class="card">
+    <ul class="org">
+        {% for r in rows %}
+        <li style="padding-left: {{ r.indent }}px;">
+            <span class="avatar" aria-hidden="true">{{ r.user.username|slice:":1" }}</span>
+            <span><strong>{{ r.user.get_full_name|default:r.user.username }}</strong>
+                <span class="muted">{{ r.user.profile.designation|default:"" }}{% if r.user.profile.department %}{% if r.user.profile.designation %}, {% endif %}{{ r.user.profile.department.name }}{% endif %}</span>
+                {% if r.reports %}<span class="chip">{{ r.reports }} report{{ r.reports|pluralize }}</span>{% endif %}
+            </span>
+        </li>
+        {% empty %}
+        <li class="muted">No people yet.</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endblock %}

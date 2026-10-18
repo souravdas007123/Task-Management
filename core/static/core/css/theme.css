@@ -1629,3 +1629,26 @@ form.inline { display: inline; margin: 0; }
     .stat-row-3 { grid-template-columns: 1fr; }
     .gantt-head, .gantt-row { grid-template-columns: 150px minmax(520px, 1fr); }
 }
+
+/* ---------- People, HR, payslip ---------- */
+
+.org { list-style: none; margin: 0; padding: 0; }
+.org li { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
+.org li:last-child { border-bottom: 0; }
+
+.payslip-head { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.payslip-period { text-align: right; }
+.payslip-net {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 18px; padding: 14px 16px; border-radius: var(--radius-sm);
+    background: var(--surface-2); border: 1px solid var(--border);
+}
+.payslip-net strong { font-family: var(--font-head); font-size: 26px; }
+
+@media print {
+    .sidebar, .no-print, .messages { display: none !important; }
+    .shell { display: block; }
+    body, .main, .card { background: #fff !important; color: #000 !important; box-shadow: none !important; }
+    .card { border: 1px solid #999 !important; }
+    .muted, .help { color: #333 !important; }
+}

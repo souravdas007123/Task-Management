@@ -2,7 +2,8 @@ from django.contrib.auth import views as auth_views
 from django.urls import path, reverse_lazy
 
 from . import (
-    views, views_api, views_budget, views_misc, views_office, views_projects, views_reports, views_work,
+    views, views_api, views_budget, views_hr, views_misc, views_office, views_projects, views_reports,
+    views_work,
 )
 
 urlpatterns = [
@@ -59,6 +60,34 @@ urlpatterns = [
     path('leave/<int:pk>/reject/', views_office.leave_reject, name='leave_reject'),
     path('leave/<int:pk>/cancel/', views_office.leave_cancel, name='leave_cancel'),
     path('audit/', views_office.audit_log, name='audit_log'),
+
+    # People, holidays, payslips (sabke liye)
+    path('people/', views_hr.people, name='people'),
+    path('people/org/', views_hr.org_chart, name='org_chart'),
+    path('me/', views_hr.my_profile, name='my_profile'),
+    path('holidays/', views_hr.holiday_list, name='holiday_list'),
+    path('payslips/', views_hr.my_payslips, name='my_payslips'),
+    path('payslips/<int:pk>/', views_hr.payslip_detail, name='payslip_detail'),
+
+    # HR (sirf admin/HR role)
+    path('hr/', views_hr.hr_employees, name='hr_employees'),
+    path('hr/employee/<int:user_id>/', views_hr.employee_edit, name='employee_edit'),
+    path('hr/salary/<int:user_id>/', views_hr.salary_history, name='salary_history'),
+    path('hr/salary/structure/<int:pk>/delete/', views_hr.salary_delete, name='salary_delete'),
+    path('hr/payroll/', views_hr.payroll, name='payroll'),
+    path('hr/payroll/generate/', views_hr.payroll_generate, name='payroll_generate'),
+    path('hr/payroll/publish-all/', views_hr.payroll_publish_all, name='payroll_publish_all'),
+    path('hr/payroll/export/', views_hr.payroll_export, name='payroll_export'),
+    path('hr/payslip/<int:pk>/publish/', views_hr.payslip_publish, name='payslip_publish'),
+    path('hr/payslip/<int:pk>/reopen/', views_hr.payslip_reopen, name='payslip_reopen'),
+    path('hr/payslip/<int:pk>/recalculate/', views_hr.payslip_recalculate, name='payslip_recalculate'),
+    path('hr/payslip/<int:pk>/delete/', views_hr.payslip_delete, name='payslip_delete'),
+    path('hr/payslip/<int:pk>/adjust/', views_hr.payslip_adjust, name='payslip_adjust'),
+    path('hr/holidays/add/', views_hr.holiday_add, name='holiday_add'),
+    path('hr/holidays/<int:pk>/delete/', views_hr.holiday_delete, name='holiday_delete'),
+    path('hr/departments/', views_hr.department_list, name='department_list'),
+    path('hr/departments/<int:pk>/delete/', views_hr.department_delete, name='department_delete'),
+    path('hr/leave-policy/', views_hr.leave_policy, name='leave_policy'),
 
     # Reports
     path('report/', views_reports.task_report, name='task_report'),

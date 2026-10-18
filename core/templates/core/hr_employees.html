@@ -1,0 +1,49 @@
+{% extends 'core/base.html' %}
+{% block title %}HR{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>HR</h1>
+        <p class="page-sub">Employee records and salaries. Only admin and HR can see this page.</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'payroll' %}" class="btn btn-primary">Payroll</a>
+        <a href="{% url 'leave_policy' %}" class="btn btn-ghost">Leave policy</a>
+        <a href="{% url 'holiday_list' %}" class="btn btn-ghost">Holidays</a>
+        <a href="{% url 'department_list' %}" class="btn btn-ghost">Departments</a>
+    </div>
+</div>
+<section class="card">
+    <div class="table-wrap">
+        <table class="data">
+            <thead>
+                <tr>
+                    <th scope="col">Employee</th><th scope="col">Post</th><th scope="col">Department</th>
+                    <th scope="col">Joined</th><th scope="col">Role</th><th scope="col" class="num">Gross / month</th>
+                    <th scope="col"><span class="sr-only">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in employees %}
+                <tr>
+                    <td>
+                        <div class="assignee"><span class="avatar" aria-hidden="true">{{ e.username|slice:":1" }}</span>{{ e.get_full_name|default:e.username }}</div>
+                        {% if e.profile.employee_id %}<div class="task-meta"><span class="muted">ID {{ e.profile.employee_id }}</span></div>{% endif %}
+                    </td>
+                    <td>{{ e.profile.designation|default:"-" }}</td>
+                    <td>{{ e.profile.department.name|default:"-" }}</td>
+                    <td class="nowrap">{% if e.profile.joining_date %}{{ e.profile.joining_date|date:"d M Y" }}{% else %}-{% endif %}</td>
+                    <td>{% if e.is_superuser %}admin{% else %}{{ e.profile.role|default:"member" }}{% endif %}</td>
+                    <td class="num">{% if e.structure %}{{ currency }}{{ e.structure.gross|floatformat:"2g" }}{% else %}<span class="muted">Not set</span>{% endif %}</td>
+                    <td class="row-actions">
+                        <a href="{% url 'employee_edit' e.pk %}" class="btn btn-ghost btn-sm">Details</a>
+                        <a href="{% url 'salary_history' e.pk %}" class="btn btn-ghost btn-sm">Salary</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="help">Roles (admin, HR, manager, member) are changed in the admin site on the user's profile.</p>
+</section>
+{% endblock %}

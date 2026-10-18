@@ -27,6 +27,11 @@ def is_manager(user):
     return role_of(user) in ('admin', 'manager')
 
 
+def is_hr(user):
+    """Salary aur employee records: sirf admin aur HR role. Manager bhi nahi."""
+    return role_of(user) in ('admin', 'hr')
+
+
 def visible_tasks(queryset, user):
     """Private project ke tasks sirf members/managers/assignee/creator ko; baaki sab ko sab dikhta hai."""
     if is_manager(user):
@@ -70,6 +75,16 @@ def can_delete_task(user, task):
     if not getattr(user, 'is_authenticated', False):
         return False
     return is_manager(user) or task.created_by_id == user.id
+
+
+def hr_required(view):
+    """Sirf admin/HR ke liye; baaki ko 403."""
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not is_hr(request.user):
+            raise PermissionDenied
+        return view(request, *args, **kwargs)
+    return wrapper
 
 
 def manager_required(view):

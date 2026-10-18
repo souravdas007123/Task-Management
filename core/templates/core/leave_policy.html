@@ -1,0 +1,28 @@
+{% extends 'core/base.html' %}
+{% block title %}Leave policy{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div><h1>Leave policy</h1><p class="page-sub">Yearly quota per leave type, in working days. 0 means no limit. Unpaid types are deducted from salary.</p></div>
+    <div class="head-actions"><a href="{% url 'hr_employees' %}" class="btn btn-ghost">Back to HR</a></div>
+</div>
+<section class="card form-card">
+    <form method="POST" novalidate>
+        {% csrf_token %}
+        <div class="table-wrap">
+            <table class="data">
+                <thead><tr><th scope="col">Leave type</th><th scope="col" class="num">Days per year</th><th scope="col">Paid</th></tr></thead>
+                <tbody>
+                    {% for r in rows %}
+                    <tr>
+                        <td><label for="days_{{ r.kind }}">{{ r.label }}</label></td>
+                        <td class="num"><input type="number" id="days_{{ r.kind }}" name="days_{{ r.kind }}" value="{{ r.days }}" min="0" max="366" class="form-control" style="max-width: 110px; margin-left: auto;"></td>
+                        <td><label class="check-inline"><input type="checkbox" name="paid_{{ r.kind }}" {% if r.paid %}checked{% endif %}> Paid</label></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="form-actions"><button type="submit" class="btn btn-primary">Save policy</button></div>
+    </form>
+</section>
+{% endblock %}

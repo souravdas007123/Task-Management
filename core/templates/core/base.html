@@ -60,6 +60,20 @@
                 Budget
             </a>
             {% endif %}
+            <a href="{% url 'people' %}" {% if url_name == 'people' or url_name == 'org_chart' or url_name == 'my_profile' or url_name == 'holiday_list' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2 20a7 7 0 0 1 14 0M16 4.5a3.5 3.5 0 0 1 0 7M19 20a6 6 0 0 0-3-5.2"/></svg>
+                People
+            </a>
+            <a href="{% url 'my_payslips' %}" {% if url_name == 'my_payslips' or url_name == 'payslip_detail' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg>
+                My payslips
+            </a>
+            {% if user_is_hr %}
+            <a href="{% url 'hr_employees' %}" {% if url_name == 'hr_employees' or url_name == 'employee_edit' or url_name == 'salary_history' or url_name == 'payroll' or url_name == 'payslip_adjust' or url_name == 'leave_policy' or url_name == 'department_list' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a3 3 0 0 1 6 0v2M3 13h18"/></svg>
+                HR
+            </a>
+            {% endif %}
             <a href="{% url 'leave_list' %}" {% if url_name == 'leave_list' or url_name == 'leave_add' %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11M10 21v-6h4v6"/></svg>
                 Leave

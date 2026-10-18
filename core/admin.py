@@ -3,8 +3,8 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 
 from .models import (
-    ActivityLog, Attachment, ChecklistItem, Comment, Expense, Label, Notification,
-    Project, Task, TimeEntry, UserProfile,
+    ActivityLog, Attachment, ChecklistItem, Comment, Department, Expense, Holiday, Label,
+    LeavePolicy, Notification, Project, Task, TimeEntry, UserProfile,
 )
 
 
@@ -69,7 +69,15 @@ class NotificationAdmin(admin.ModelAdmin):
 class UserProfileInline(admin.StackedInline):
     """User edit page par hi role, hourly rate (labour cost ke liye) aur weekly capacity set karo."""
     model = UserProfile
+    fk_name = 'user'
     can_delete = False
+
+
+# Salary aur payslip ka koi admin-site model jaan-boojh kar register nahi kiya:
+# wo sirf HR pages se hi dikhte/badalte hain.
+admin.site.register(Department)
+admin.site.register(Holiday)
+admin.site.register(LeavePolicy)
 
 
 admin.site.unregister(User)

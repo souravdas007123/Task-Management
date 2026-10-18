@@ -25,11 +25,31 @@ def add_months(day, months=1):
     return datetime.date(year, month, min(day.day, last_day))
 
 
+class Department(models.Model):
+    name = models.CharField(max_length=80, unique=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+PHONE_VALIDATOR = RegexValidator(r'^[0-9+()\- ]{5,30}$', 'Enter a phone number using digits, spaces, + ( ) or -.')
+
+
 class UserProfile(models.Model):
     ROLE_CHOICES = [
         ('admin', 'Admin'),
+        ('hr', 'HR'),
         ('manager', 'Manager'),
         ('member', 'Member'),
+    ]
+    EMPLOYMENT_CHOICES = [
+        ('full_time', 'Full-time'),
+        ('part_time', 'Part-time'),
+        ('contract', 'Contract'),
+        ('intern', 'Intern'),
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
@@ -45,6 +65,20 @@ class UserProfile(models.Model):
         default=40, validators=[MinValueValidator(1), MaxValueValidator(168)],
         help_text='Hours of work this person can take on per week.',
     )
+
+    # Employee details (HR bharta hai; directory mein designation/department sabko dikhte hain)
+    designation = models.CharField(max_length=100, blank=True)
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='members')
+    employee_id = models.CharField(max_length=30, unique=True, null=True, blank=True)
+    employment_type = models.CharField(max_length=10, choices=EMPLOYMENT_CHOICES, default='full_time')
+    joining_date = models.DateField(null=True, blank=True)
+    probation_end = models.DateField(null=True, blank=True)
+    reporting_manager = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='direct_reports',
+    )
+    phone = models.CharField(max_length=30, blank=True, validators=[PHONE_VALIDATOR])
+    emergency_name = models.CharField(max_length=100, blank=True)
+    emergency_phone = models.CharField(max_length=30, blank=True, validators=[PHONE_VALIDATOR])
 
     def __str__(self):
         return f'{self.user.username} ({self.get_role_display()})'
@@ -432,3 +466,108 @@ class LeaveRequest(models.Model):
     @property
     def days(self):
         return (self.end_date - self.start_date).days + 1
+
+
+class Holiday(models.Model):
+    """Office holiday: leave ke din ginte waqt aur payroll ke working days mein nahi ginti."""
+    date = models.DateField(unique=True)
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        ordering = ['date']
+
+    def __str__(self):
+        return f'{self.name} ({self.date})'
+
+
+class LeavePolicy(models.Model):
+    """Har leave type ka saalana quota. days_per_year = 0 ka matlab quota nahi (unlimited)."""
+    kind = models.CharField(max_length=10, choices=LeaveRequest.KIND_CHOICES, unique=True)
+    days_per_year = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(366)])
+    is_paid = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['kind']
+
+    def __str__(self):
+        return self.get_kind_display()
+
+
+class SalaryStructure(models.Model):
+    """Mahine ki salary ka structure. Naya revision = nayi row (purani history bani rehti hai).
+
+    Jis mahine ki ye effective_from date aati hai, usi poore mahine se lagu hoti hai.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='salary_structures')
+    effective_from = models.DateField()
+    basic = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
+    hra = models.DecimalField('HRA', max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    allowances = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    pf_percent = models.DecimalField(
+        'PF % of basic', max_digits=5, decimal_places=2, default=12,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    tax = models.DecimalField('Tax (TDS) per month', max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    other_deduction = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    note = models.CharField(max_length=200, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-effective_from', '-id']
+
+    def __str__(self):
+        return f'{self.user_id} from {self.effective_from}'
+
+    @property
+    def gross(self):
+        return self.basic + self.hra + self.allowances
+
+
+class Payslip(models.Model):
+    """Ek mahine ki payslip. Values us waqt ki snapshot hain, baad mein salary badalne se purani slip nahi badalti."""
+    STATUS_CHOICES = [('draft', 'Draft'), ('published', 'Published')]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payslips')
+    year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(12)])
+    basic = models.DecimalField(max_digits=12, decimal_places=2)
+    hra = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    allowances = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    pf = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tax = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    other_deduction = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    working_days = models.PositiveSmallIntegerField(default=0)
+    unpaid_days = models.PositiveSmallIntegerField(default=0)
+    leave_deduction = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    # HR ke haath se: bonus aur extra katauti
+    bonus = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    extra_deduction = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    adjustment_note = models.CharField(max_length=200, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
+    generated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    generated_at = models.DateTimeField(auto_now_add=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-year', '-month', 'user__username']
+        constraints = [models.UniqueConstraint(fields=['user', 'year', 'month'], name='one_payslip_per_month')]
+
+    def __str__(self):
+        return f'{self.user_id} {self.year}-{self.month:02d}'
+
+    @property
+    def gross(self):
+        return self.basic + self.hra + self.allowances
+
+    @property
+    def total_deductions(self):
+        return self.pf + self.tax + self.other_deduction + self.leave_deduction + self.extra_deduction
+
+    @property
+    def net(self):
+        return self.gross + self.bonus - self.total_deductions
+
+    @property
+    def period(self):
+        return datetime.date(self.year, self.month, 1)

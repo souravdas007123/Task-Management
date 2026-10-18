@@ -1,0 +1,47 @@
+{% extends 'core/base.html' %}
+{% block title %}People{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>People</h1>
+        <p class="page-sub">Who works here, their post and who they report to.</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'org_chart' %}" class="btn btn-ghost">Org chart</a>
+        <a href="{% url 'holiday_list' %}" class="btn btn-ghost">Holidays</a>
+        <a href="{% url 'my_profile' %}" class="btn btn-ghost">My profile</a>
+    </div>
+</div>
+<section class="card">
+    <form method="GET" class="filter-bar" role="search">
+        <input type="search" name="q" value="{{ current.q }}" class="form-control grow" placeholder="Search by name, post or department" aria-label="Search">
+        <select name="department" class="form-control" aria-label="Department">
+            <option value="">All departments</option>
+            {% for d in departments %}<option value="{{ d.pk }}" {% if current.department == d.pk %}selected{% endif %}>{{ d.name }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">Apply</button>
+        {% if current.q or current.department %}<a href="{% url 'people' %}" class="btn btn-ghost">Clear</a>{% endif %}
+    </form>
+    {% if people %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">Name</th><th scope="col">Post</th><th scope="col">Department</th><th scope="col">Reports to</th><th scope="col">Email</th>{% if hr %}<th scope="col">Phone</th>{% endif %}</tr></thead>
+            <tbody>
+                {% for p in people %}
+                <tr>
+                    <td><div class="assignee"><span class="avatar" aria-hidden="true">{{ p.username|slice:":1" }}</span>{{ p.get_full_name|default:p.username }}</div></td>
+                    <td>{{ p.profile.designation|default:"-" }}</td>
+                    <td>{{ p.profile.department.name|default:"-" }}</td>
+                    <td>{% if p.profile.reporting_manager %}{{ p.profile.reporting_manager.get_full_name|default:p.profile.reporting_manager.username }}{% else %}-{% endif %}</td>
+                    <td>{{ p.email|default:"-" }}</td>
+                    {% if hr %}<td>{{ p.profile.phone|default:"-" }}</td>{% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty"><p>Nobody matches this search.</p></div>
+    {% endif %}
+</section>
+{% endblock %}
