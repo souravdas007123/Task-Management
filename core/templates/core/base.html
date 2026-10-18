@@ -153,6 +153,24 @@
                 {% if unread_notifications_count %}<span class="badge-count" aria-label="{{ unread_notifications_count }} unread">{{ unread_notifications_count }}</span>{% endif %}
             </a>
         </nav>
+        <script>
+        (function () {
+            var nav = document.querySelector('.sidebar .nav');
+            if (!nav) { return; }
+            var key = 'nav-scroll', saved = null;
+            try { saved = sessionStorage.getItem(key); } catch (e) {}
+            if (saved !== null && !isNaN(parseInt(saved, 10))) {
+                nav.scrollTop = parseInt(saved, 10);
+            } else {
+                var active = nav.querySelector('[aria-current="page"]');
+                if (active) { nav.scrollTop = Math.max(active.offsetTop - nav.clientHeight / 2, 0); }
+            }
+            function save() { try { sessionStorage.setItem(key, String(nav.scrollTop)); } catch (e) {} }
+            nav.addEventListener('click', save);
+            nav.addEventListener('scroll', save, { passive: true });
+            window.addEventListener('pagehide', save);
+        })();
+        </script>
 
         <a href="{% url 'add_task' %}" class="btn btn-primary btn-block side-add">Add task</a>
 
