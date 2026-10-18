@@ -22,6 +22,19 @@ def dashboard(request):
     avg_progress = tasks.aggregate(avg=Avg('progress'))['avg']
     overall_progress = int(avg_progress) if avg_progress else 0
 
+    # Dashboard ke segmented bar ke liye: har status ka count aur width (%)
+    status_segments = [
+        {'label': label, 'css': css, 'count': count,
+         'pct': round(count * 100 / total_tasks) if total_tasks else 0,
+         'width': round(count * 100 / total_tasks, 2) if total_tasks else 0}
+        for label, css, count in [
+            ('Completed', 'completed', completed_tasks),
+            ('In Progress', 'progress', in_progress_tasks),
+            ('Pending', 'pending', pending_tasks),
+            ('On Hold', 'hold', on_hold_tasks),
+        ]
+    ]
+
     context = {
         'tasks': tasks,
         'total_tasks': total_tasks,
@@ -30,6 +43,7 @@ def dashboard(request):
         'in_progress_tasks': in_progress_tasks,
         'on_hold_tasks': on_hold_tasks,
         'overall_progress': overall_progress,
+        'status_segments': status_segments,
     }
     return render(request, 'core/dashboard.html', context)
 

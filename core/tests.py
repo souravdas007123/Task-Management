@@ -25,6 +25,12 @@ class AuthTests(TaskTestBase):
             self.assertIn(reverse('login'), response['Location'], name)
 
 
+    def test_login_page_renders(self):
+        response = self.client.get(reverse('login'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Log in')
+
+
 class ModelTests(TaskTestBase):
     def test_progress_must_be_between_0_and_100(self):
         for bad in (-1, 101):
@@ -54,6 +60,29 @@ class ViewTests(TaskTestBase):
         self.assertEqual(response.context['on_hold_tasks'], 1)
         self.assertEqual(response.context['completed_tasks'], 1)
         self.assertEqual(response.context['overall_progress'], 50)
+
+    def test_dashboard_status_segments(self):
+        self.make_task(status='Completed')
+        self.make_task(status='Completed')
+        self.make_task(status='Pending')
+        self.make_task(status='On Hold')
+        response = self.client.get(reverse('dashboard'))
+        segments = {s['label']: s for s in response.context['status_segments']}
+        self.assertEqual(segments['Completed']['count'], 2)
+        self.assertEqual(segments['Completed']['pct'], 50)
+        self.assertEqual(segments['In Progress']['count'], 0)
+        self.assertEqual(sum(s['count'] for s in segments.values()), 4)
+
+    def test_dashboard_renders_empty_state(self):
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'No tasks yet')
+
+    def test_form_pages_render(self):
+        task = self.make_task()
+        self.assertEqual(self.client.get(reverse('add_task')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('update_task', args=[task.pk])).status_code, 200)
+        self.assertEqual(self.client.get(reverse('task_report')).status_code, 200)
 
     def test_add_task_sets_created_by(self):
         response = self.client.post(reverse('add_task'), {
