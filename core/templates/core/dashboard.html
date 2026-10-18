@@ -9,27 +9,39 @@
 <body class="bg-light">
     <div class="container mt-4">
         <h2 class="mb-3">🚀 Project Task Management Dashboard</h2>
-        <div class="mb-4">
+        <div class="mb-4 d-flex gap-2 align-items-center">
             <a href="{% url 'add_task' %}" class="btn btn-primary">+ Add New Task</a>
             <a href="{% url 'task_report' %}" class="btn btn-secondary">📊 View Reports</a>
+            <form method="POST" action="{% url 'logout' %}" class="ms-auto">
+                {% csrf_token %}
+                <span class="me-2 text-muted">{{ request.user.username }}</span>
+                <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
+            </form>
         </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
 
         <!-- Overall Project Progress Bar -->
         <div class="card p-3 mb-4 shadow-sm">
             <h5>Overall Project Progress: {{ overall_progress }}%</h5>
             <div class="progress" style="height: 25px;">
                 <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ overall_progress }}%;">
-                    {{ overall_progress }}% Completed
+                    {{ overall_progress }}%
                 </div>
             </div>
         </div>
 
         <!-- Quick Stats Cards -->
         <div class="row text-center mb-4">
-            <div class="col-md-3"><div class="card p-3 bg-white shadow-sm"><h5>Total Tasks</h5><h3>{{ total_tasks }}</h3></div></div>
-            <div class="col-md-3"><div class="card p-3 bg-warning shadow-sm"><h5>In Progress</h5><h3>{{ in_progress_tasks }}</h3></div></div>
-            <div class="col-md-3"><div class="card p-3 bg-success text-white shadow-sm"><h5>Completed</h5><h3>{{ completed_tasks }}</h3></div></div>
-            <div class="col-md-3"><div class="card p-3 bg-danger text-white shadow-sm"><h5>Pending</h5><h3>{{ pending_tasks }}</h3></div></div>
+            <div class="col"><div class="card p-3 bg-white shadow-sm"><h5>Total Tasks</h5><h3>{{ total_tasks }}</h3></div></div>
+            <div class="col"><div class="card p-3 bg-warning shadow-sm"><h5>In Progress</h5><h3>{{ in_progress_tasks }}</h3></div></div>
+            <div class="col"><div class="card p-3 bg-success text-white shadow-sm"><h5>Completed</h5><h3>{{ completed_tasks }}</h3></div></div>
+            <div class="col"><div class="card p-3 bg-danger text-white shadow-sm"><h5>Pending</h5><h3>{{ pending_tasks }}</h3></div></div>
+            <div class="col"><div class="card p-3 bg-secondary text-white shadow-sm"><h5>On Hold</h5><h3>{{ on_hold_tasks }}</h3></div></div>
         </div>
 
         <!-- Task List Table -->
@@ -61,7 +73,7 @@
                         <td>
                             {% if task.issue_image %}
                                 <a href="{{ task.issue_image.url }}" target="_blank">
-                                    <img src="{{ task.issue_image.url }}" width="40" height="40" class="rounded">
+                                    <img src="{{ task.issue_image.url }}" alt="Issue image for {{ task.title }}" width="40" height="40" class="rounded">
                                 </a>
                             {% else %}
                                 <span class="text-muted">No Image</span>

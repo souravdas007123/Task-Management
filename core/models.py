@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.contrib.auth.models import User
 # Create your models here.
@@ -19,7 +20,8 @@ class Task(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     assigned_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_tasks', null=True, blank=True)
+    # SET_NULL: creator user delete ho to doosron ko assigned tasks delete na hon
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='created_tasks', null=True, blank=True)
     
     # Issue related image upload
     issue_image = models.ImageField(upload_to='issue_images/', blank=True, null=True)
@@ -28,10 +30,16 @@ class Task(models.Model):
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')
     
     # Progress chart ke liye percentage field (0 to 100)
-    progress = models.IntegerField(default=0) 
-    
+    progress = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+
     due_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
 
     def __str__(self):
         return self.title
