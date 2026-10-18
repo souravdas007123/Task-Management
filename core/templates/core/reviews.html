@@ -1,0 +1,72 @@
+{% extends 'core/base.html' %}
+{% block title %}Performance reviews{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Performance reviews</h1>
+        <p class="page-sub">Your self reviews, and reviews of your team.</p>
+    </div>
+    {% if hr %}<div class="head-actions"><a href="{% url 'cycle_add' %}" class="btn btn-primary">New cycle</a></div>{% endif %}
+</div>
+
+<section class="card">
+    <h2 class="card-title">My reviews</h2>
+    {% if mine %}
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Cycle</th><th scope="col">Period</th><th scope="col">Self review</th><th scope="col">Manager review</th><th scope="col"><span class="sr-only">Open</span></th></tr></thead>
+        <tbody>
+        {% for r in mine %}
+        <tr>
+            <td>{{ r.cycle.name }}{% if not r.cycle.is_open %} <span class="chip">Closed</span>{% endif %}</td>
+            <td class="nowrap">{{ r.cycle.start_date|date:"d M Y" }} - {{ r.cycle.end_date|date:"d M Y" }}</td>
+            <td>{% if r.self_submitted_at %}Submitted{% else %}<span class="overdue">To do</span>{% endif %}</td>
+            <td>{% if r.manager_submitted_at %}Ready{% else %}<span class="muted">Waiting</span>{% endif %}</td>
+            <td class="row-actions"><a href="{% url 'review_detail' r.pk %}" class="btn btn-ghost btn-sm">Open</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}<p class="muted">No review has been opened for you yet.</p>{% endif %}
+</section>
+
+{% if to_give %}
+<section class="card">
+    <h2 class="card-title">Reviews I need to give</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Employee</th><th scope="col">Cycle</th><th scope="col">Self review</th><th scope="col">My review</th><th scope="col"><span class="sr-only">Open</span></th></tr></thead>
+        <tbody>
+        {% for r in to_give %}
+        <tr>
+            <td>{{ r.employee.get_full_name|default:r.employee.username }}</td>
+            <td>{{ r.cycle.name }}</td>
+            <td>{% if r.self_submitted_at %}Submitted{% else %}<span class="muted">Not yet</span>{% endif %}</td>
+            <td>{% if r.manager_submitted_at %}Done{% elif r.cycle.is_open %}<span class="overdue">To do</span>{% else %}<span class="muted">Closed</span>{% endif %}</td>
+            <td class="row-actions"><a href="{% url 'review_detail' r.pk %}" class="btn btn-ghost btn-sm">Open</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+</section>
+{% endif %}
+
+{% if hr %}
+<section class="card">
+    <h2 class="card-title">All cycles</h2>
+    {% if cycles %}
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Cycle</th><th scope="col">Period</th><th scope="col" class="num">Employees</th><th scope="col" class="num">Reviewed</th><th scope="col">Status</th></tr></thead>
+        <tbody>
+        {% for c in cycles %}
+        <tr>
+            <td><a class="task-title" href="{% url 'cycle_detail' c.pk %}">{{ c.name }}</a></td>
+            <td class="nowrap">{{ c.start_date|date:"d M Y" }} - {{ c.end_date|date:"d M Y" }}</td>
+            <td class="num">{{ c.total }}</td><td class="num">{{ c.done }}</td>
+            <td>{% if c.is_open %}Open{% else %}Closed{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}<p class="muted">No cycles yet. Create one to start reviews.</p>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

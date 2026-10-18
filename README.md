@@ -1,4 +1,4 @@
-# Taskboard
+# Office Hub
 
 Django task management app for small teams.
 
@@ -44,7 +44,7 @@ DJANGO_EMAIL_PORT=587
 DJANGO_EMAIL_USER=...
 DJANGO_EMAIL_PASSWORD=...
 DJANGO_EMAIL_USE_TLS=True
-DJANGO_FROM_EMAIL="Taskboard <you@example.com>"
+DJANGO_FROM_EMAIL="Office Hub <you@example.com>"
 ```
 
 Users only get emails if they have an email address on their account.
@@ -117,3 +117,16 @@ Without Docker: `pip install -r requirements-prod.txt`, set `DJANGO_DEBUG=False`
 - **Announcements** (`/announcements/`): HR posts, everyone reads. Pin to the top, optional "hide after" date. Everyone gets an in-app notification and the latest three show on the dashboard.
 - **Assets** (`/hr/assets/`, HR only): laptops, phones and so on with tag, serial, cost. Assign, return (optionally mark for repair), retire. Full history is kept, an asset can be with only one person at a time, and an employee sees their assets on My profile.
 - **Onboarding and offboarding** (`/hr/checklists/`): start a checklist for a person from an editable template (one step per line, `Owner | Step`). Employees tick their own steps, managers tick manager steps, HR can tick anything. HR is notified when a checklist completes. Offboarding also lists assets still with the person.
+
+## Rooms, visitors, documents, helpdesk, recruitment and reviews
+
+- **Meeting rooms** (`/rooms/`): HR adds rooms; everyone books by date and time. Double booking is blocked (back-to-back is fine), bookings are capped at 12 hours, and only the booker or HR can cancel. Deactivate a room to stop new bookings and keep history.
+- **Visitors** (`/visitors/`): any employee registers a visitor for themselves; HR (reception) can register for anyone, checks visitors in and out with a badge number, and the host is notified on arrival.
+- **Documents and policies** (`/documents/`): HR uploads PDF, Office, text or image files. Mark a document "everyone must acknowledge" and each employee confirms once; uploading a new file creates the next version and asks again. HR sees who has not acknowledged.
+- **Helpdesk** (`/helpdesk/`): IT, HR, admin and finance tickets with replies. Only the person who raised it, the assignee and HR/admin can see a ticket. HR sets status, priority and assignee. A reply from the requester reopens a resolved ticket.
+- **Recruitment** (`/hr/jobs/`, HR only): job openings and a candidate pipeline (Applied, Screening, Interview, Offer, Hired, Rejected) with resume upload.
+- **Performance reviews** (`/reviews/`): HR creates a cycle and adds everyone; the reporting manager is the reviewer by default. The employee writes a self review (once), the reviewer rates 1 to 5 with feedback and goals, and the employee sees the manager feedback only after it is submitted. Closed cycles accept no more submissions.
+- The dashboard shows a "Waiting for you" list (documents to acknowledge, reviews, tickets, visitors).
+- The sidebar is grouped into Work, Me, Office, Management and HR.
+
+Limits: uploaded documents and resumes are served by URL like the other uploads, so use a protected media setup if file secrecy matters. There is no calendar sync for room bookings, and expense claims are not yet paid out through payroll.

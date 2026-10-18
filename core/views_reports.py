@@ -187,7 +187,7 @@ def calendar_ics(request):
     ).filter(due_date__isnull=False).exclude(status='Completed').order_by('due_date', 'id')
 
     stamp = timezone.now().strftime('%Y%m%dT%H%M%SZ')
-    lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Taskboard//Tasks//EN', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Taskboard']
+    lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//OfficeHub//Tasks//EN', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Office Hub']
     for task in scope:
         description = f'Assigned to {task.assigned_to.username}. Priority {task.priority}. Status {task.status}.'
         lines += [

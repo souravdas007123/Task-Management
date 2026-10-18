@@ -333,8 +333,8 @@ class PasswordTests(OfficeBase):
         self.assertRedirects(r, reverse('password_reset_done'))
         self.assertEqual(len(mail.outbox), 1)
         body = mail.outbox[0].body
-        self.assertIn('Taskboard account', body)
-        self.assertEqual(mail.outbox[0].subject, 'Taskboard password reset')
+        self.assertIn('Office Hub account', body)
+        self.assertEqual(mail.outbox[0].subject, 'Office Hub password reset')
         link = [line for line in body.splitlines() if '/password/reset/' in line][0].strip()
         path = link.split('://', 1)[1].split('/', 1)[1]
         r = self.client.get('/' + path, follow=True)

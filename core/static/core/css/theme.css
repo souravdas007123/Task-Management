@@ -1658,3 +1658,20 @@ form.inline { display: inline; margin: 0; }
 
 .announcement.is-pinned { border-color: var(--accent); }
 .announcement .prose { margin: 8px 0 12px; }
+
+/* Navigation sections */
+.nav-section {
+    margin: 14px 10px 4px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    opacity: 0.75;
+}
+
+/* Recruitment pipeline: six stages */
+.board.pipeline { grid-template-columns: repeat(6, minmax(210px, 1fr)); }
+
+.todo-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.todo-list a { color: var(--text); }
+.todo-list a::before { content: "\2192"; color: var(--accent); margin-right: 8px; }

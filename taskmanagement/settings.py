@@ -170,7 +170,7 @@ EMAIL_PORT = int(os.environ.get('DJANGO_EMAIL_PORT', '25'))
 EMAIL_HOST_USER = os.environ.get('DJANGO_EMAIL_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('DJANGO_EMAIL_PASSWORD', '')
 EMAIL_USE_TLS = os.environ.get('DJANGO_EMAIL_USE_TLS', 'False').lower() in ('1', 'true', 'yes')
-DEFAULT_FROM_EMAIL = os.environ.get('DJANGO_FROM_EMAIL', 'Taskboard <noreply@localhost>')
+DEFAULT_FROM_EMAIL = os.environ.get('DJANGO_FROM_EMAIL', 'Office Hub <noreply@localhost>')
 
 # Login settings (dashboard, add/update task, report ab login ke baad hi khulenge)
 LOGIN_URL = 'login'

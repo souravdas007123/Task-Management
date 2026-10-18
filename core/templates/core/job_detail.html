@@ -1,0 +1,50 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ job.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ job.title }}</h1>
+        <p class="page-sub">{% if job.department %}{{ job.department.name }}, {% endif %}{{ job.get_status_display }}. {{ hired }} of {{ job.positions }} position{{ job.positions|pluralize }} filled, {{ total }} candidate{{ total|pluralize }} in total.</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'job_list' %}" class="btn btn-ghost">All openings</a>
+        <a href="{% url 'job_edit' job.pk %}" class="btn btn-ghost">Edit</a>
+        <a href="{% url 'job_delete' job.pk %}" class="btn btn-ghost">Delete</a>
+        <a href="{% url 'candidate_add' job.pk %}" class="btn btn-primary">Add candidate</a>
+    </div>
+</div>
+{% if job.description %}<section class="card"><p>{{ job.description|linebreaksbr }}</p></section>{% endif %}
+<div class="board pipeline">
+    {% for column in columns %}
+    <section class="kcol" aria-label="{{ column.label }}">
+        <header class="kcol-head"><h2>{{ column.label }}</h2><span class="kcount">{{ column.items|length }}</span></header>
+        <div class="klist">
+            {% for c in column.items %}
+            <article class="kcard">
+                <a class="kcard-title" href="{% url 'candidate_edit' c.pk %}">{{ c.name }}</a>
+                <div class="kcard-meta">
+                    <span class="muted">{{ c.source|default:"-" }}</span>
+                    {% if c.interview_on %}<span class="muted">Interview {{ c.interview_on|date:"d M" }}</span>{% endif %}
+                </div>
+                {% if c.email or c.phone %}<div class="task-meta"><span class="muted">{{ c.email }}{% if c.email and c.phone %}, {% endif %}{{ c.phone }}</span></div>{% endif %}
+                {% if c.resume %}<div class="task-meta"><a href="{{ c.resume.url }}" target="_blank" rel="noopener">Resume</a></div>{% endif %}
+                <div class="kcard-foot">
+                    <form method="POST" action="{% url 'candidate_stage' c.pk %}" class="inline-form">
+                        {% csrf_token %}
+                        <select name="stage" class="form-control" aria-label="Move {{ c.name }} to" onchange="this.form.submit()">
+                            <option value="">Move to</option>
+                            {% for value, label in stage_choices %}{% if value != column.value %}<option value="{{ value }}">{{ label }}</option>{% endif %}{% endfor %}
+                        </select>
+                        <noscript><button type="submit" class="btn btn-ghost btn-sm">Move</button></noscript>
+                    </form>
+                    <form method="POST" action="{% url 'candidate_delete' c.pk %}" class="inline" onsubmit="return confirm('Delete this candidate?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
+                </div>
+            </article>
+            {% empty %}
+            <p class="kempty muted">Nobody</p>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+</div>
+{% endblock %}

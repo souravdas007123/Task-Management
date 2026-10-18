@@ -1,0 +1,74 @@
+{% extends 'core/base.html' %}
+{% block title %}Meeting rooms{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Meeting rooms</h1>
+        <p class="page-sub">Bookings for {{ day|date:"l, d M Y" }}.</p>
+    </div>
+    <div class="head-actions">
+        <a href="?date={{ prev_day|date:'Y-m-d' }}" class="btn btn-ghost" aria-label="Previous day">&larr;</a>
+        {% if not is_today %}<a href="{% url 'room_list' %}" class="btn btn-ghost">Today</a>{% endif %}
+        <a href="?date={{ next_day|date:'Y-m-d' }}" class="btn btn-ghost" aria-label="Next day">&rarr;</a>
+        {% if hr %}<a href="{% url 'room_add' %}" class="btn btn-ghost">Add room</a>{% endif %}
+        <a href="{% url 'room_book' %}?date={{ day|date:'Y-m-d' }}" class="btn btn-primary">Book a room</a>
+    </div>
+</div>
+
+{% if rooms %}
+<div class="two-col">
+    {% for room in rooms %}
+    <section class="card">
+        <h2 class="card-title">{{ room.name }}{% if not room.is_active %} <span class="chip">Inactive</span>{% endif %}</h2>
+        <p class="muted">Seats {{ room.capacity }}{% if room.location %}, {{ room.location }}{% endif %}{% if room.amenities %}. {{ room.amenities }}{% endif %}</p>
+        {% if room.day_bookings %}
+        <div class="table-wrap">
+            <table class="data">
+                <tbody>
+                {% for b in room.day_bookings %}
+                <tr>
+                    <td class="nowrap">{{ b.start|time:"H:i" }} - {{ b.end|time:"H:i" }}</td>
+                    <td>{{ b.title }}<div class="task-meta"><span class="muted">{{ b.booked_by.get_full_name|default:b.booked_by.username }}</span></div></td>
+                    <td class="row-actions">
+                        {% if b.can_cancel %}
+                        <form method="POST" action="{% url 'booking_cancel' b.pk %}" class="inline" onsubmit="return confirm('Cancel this booking?');">{% csrf_token %}<button type="submit" class="link-btn">Cancel</button></form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="muted">Free all day.</p>
+        {% endif %}
+        <div class="form-actions">
+            {% if room.is_active %}<a href="{% url 'room_book' %}?room={{ room.pk }}&amp;date={{ day|date:'Y-m-d' }}" class="btn btn-ghost btn-sm">Book this room</a>{% endif %}
+            {% if hr %}<a href="{% url 'room_edit' room.pk %}" class="btn btn-ghost btn-sm">Edit</a>{% endif %}
+        </div>
+    </section>
+    {% endfor %}
+</div>
+{% else %}
+<section class="card"><div class="empty">
+    <p>No meeting rooms yet.</p>
+    {% if hr %}<a href="{% url 'room_add' %}" class="btn btn-primary">Add a room</a>{% else %}<p class="muted">HR can add the rooms.</p>{% endif %}
+</div></section>
+{% endif %}
+
+{% if mine %}
+<section class="card">
+    <h2 class="card-title">My upcoming bookings</h2>
+    <div class="table-wrap">
+        <table class="data">
+            <thead><tr><th scope="col">When</th><th scope="col">Room</th><th scope="col">Meeting</th></tr></thead>
+            <tbody>
+            {% for b in mine %}
+            <tr><td class="nowrap">{{ b.start|date:"d M" }}, {{ b.start|time:"H:i" }} - {{ b.end|time:"H:i" }}</td><td>{{ b.room.name }}</td><td>{{ b.title }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

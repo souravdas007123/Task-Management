@@ -707,3 +707,232 @@ class ChecklistTask(models.Model):
 
     def __str__(self):
         return self.title
+
+
+# ---------------------------------------------------------------- meeting rooms, visitors
+
+class Room(models.Model):
+    name = models.CharField(max_length=80, unique=True)
+    location = models.CharField(max_length=120, blank=True, help_text='Floor or wing, e.g. 2nd floor east.')
+    capacity = models.PositiveSmallIntegerField(default=6, validators=[MinValueValidator(1), MaxValueValidator(1000)])
+    amenities = models.CharField(max_length=200, blank=True, help_text='e.g. Projector, whiteboard, video call')
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class RoomBooking(models.Model):
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='bookings')
+    booked_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='room_bookings')
+    title = models.CharField(max_length=150)
+    start = models.DateTimeField()
+    end = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['start', 'id']
+        indexes = [models.Index(fields=['room', 'start'])]
+
+    def __str__(self):
+        return f'{self.room_id} {self.start:%Y-%m-%d %H:%M}'
+
+
+class Visitor(models.Model):
+    STATUS_CHOICES = [
+        ('expected', 'Expected'), ('in', 'In the office'), ('out', 'Left'), ('cancelled', 'Cancelled'),
+    ]
+    name = models.CharField(max_length=120)
+    company = models.CharField(max_length=120, blank=True)
+    phone = models.CharField(max_length=30, blank=True)
+    host = models.ForeignKey(User, on_delete=models.CASCADE, related_name='visitors')
+    purpose = models.CharField(max_length=200, blank=True)
+    expected_on = models.DateField(default=timezone.localdate)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='expected')
+    badge_no = models.CharField(max_length=20, blank=True)
+    checked_in_at = models.DateTimeField(null=True, blank=True)
+    checked_out_at = models.DateTimeField(null=True, blank=True)
+    registered_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-expected_on', '-id']
+
+    def __str__(self):
+        return self.name
+
+
+# ---------------------------------------------------------------- company documents, helpdesk
+
+DOCUMENT_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'png', 'jpg', 'jpeg']
+
+
+class CompanyDocument(models.Model):
+    CATEGORY_CHOICES = [
+        ('policy', 'Policy'), ('handbook', 'Handbook'), ('form', 'Form / template'),
+        ('legal', 'Legal'), ('other', 'Other'),
+    ]
+    title = models.CharField(max_length=150)
+    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, default='policy')
+    description = models.CharField(max_length=300, blank=True)
+    file = models.FileField(
+        upload_to='documents/',
+        validators=[FileExtensionValidator(DOCUMENT_EXTENSIONS), validate_file_size],
+    )
+    version = models.PositiveSmallIntegerField(default=1)
+    requires_ack = models.BooleanField(
+        default=False, verbose_name='Everyone must acknowledge',
+        help_text='Employees are asked to confirm they have read it. Uploading a new version asks again.',
+    )
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['category', 'title']
+
+    def __str__(self):
+        return self.title
+
+
+class DocumentAck(models.Model):
+    document = models.ForeignKey(CompanyDocument, on_delete=models.CASCADE, related_name='acks')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='document_acks')
+    version = models.PositiveSmallIntegerField()
+    acknowledged_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['document', 'user', 'version'], name='one_ack_per_version')]
+
+
+class Ticket(models.Model):
+    CATEGORY_CHOICES = [
+        ('it', 'IT / equipment'), ('hr', 'HR'), ('admin', 'Admin / facilities'),
+        ('finance', 'Finance / payroll'), ('other', 'Other'),
+    ]
+    PRIORITY_CHOICES = [('low', 'Low'), ('medium', 'Medium'), ('high', 'High')]
+    STATUS_CHOICES = [
+        ('open', 'Open'), ('in_progress', 'In progress'), ('resolved', 'Resolved'), ('closed', 'Closed'),
+    ]
+    subject = models.CharField(max_length=150)
+    description = models.TextField(max_length=3000)
+    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, default='it')
+    priority = models.CharField(max_length=6, choices=PRIORITY_CHOICES, default='medium')
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='open')
+    raised_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tickets')
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tickets')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+
+    def __str__(self):
+        return f'#{self.pk} {self.subject}'
+
+    @property
+    def is_open(self):
+        return self.status in ('open', 'in_progress')
+
+
+class TicketComment(models.Model):
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    body = models.TextField(max_length=2000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'id']
+
+
+# ---------------------------------------------------------------- recruitment, performance
+
+class JobOpening(models.Model):
+    STATUS_CHOICES = [('open', 'Open'), ('on_hold', 'On hold'), ('closed', 'Closed')]
+    title = models.CharField(max_length=120)
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    positions = models.PositiveSmallIntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(500)])
+    location = models.CharField(max_length=120, blank=True)
+    description = models.TextField(max_length=3000, blank=True)
+    status = models.CharField(max_length=8, choices=STATUS_CHOICES, default='open')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+
+    def __str__(self):
+        return self.title
+
+
+class Candidate(models.Model):
+    STAGE_CHOICES = [
+        ('applied', 'Applied'), ('screening', 'Screening'), ('interview', 'Interview'),
+        ('offer', 'Offer'), ('hired', 'Hired'), ('rejected', 'Rejected'),
+    ]
+    job = models.ForeignKey(JobOpening, on_delete=models.CASCADE, related_name='candidates')
+    name = models.CharField(max_length=120)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=30, blank=True)
+    source = models.CharField(max_length=60, blank=True, help_text='Referral, LinkedIn, walk-in...')
+    expected_salary = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)])
+    resume = models.FileField(
+        upload_to='resumes/', blank=True,
+        validators=[FileExtensionValidator(['pdf', 'doc', 'docx']), validate_file_size],
+    )
+    stage = models.CharField(max_length=10, choices=STAGE_CHOICES, default='applied')
+    notes = models.TextField(max_length=2000, blank=True)
+    interview_on = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+
+    def __str__(self):
+        return self.name
+
+
+class ReviewCycle(models.Model):
+    name = models.CharField(max_length=80)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    is_open = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-start_date', '-id']
+
+    def __str__(self):
+        return self.name
+
+
+RATING_VALIDATORS = [MinValueValidator(1), MaxValueValidator(5)]
+
+
+class Review(models.Model):
+    cycle = models.ForeignKey(ReviewCycle, on_delete=models.CASCADE, related_name='reviews')
+    employee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
+    reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviews_to_give')
+    self_rating = models.PositiveSmallIntegerField(null=True, blank=True, validators=RATING_VALIDATORS)
+    self_comment = models.TextField(max_length=2000, blank=True)
+    self_submitted_at = models.DateTimeField(null=True, blank=True)
+    manager_rating = models.PositiveSmallIntegerField(null=True, blank=True, validators=RATING_VALIDATORS)
+    manager_comment = models.TextField(max_length=2000, blank=True)
+    goals = models.TextField(max_length=2000, blank=True, help_text='Goals for the next period.')
+    manager_submitted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['employee__username']
+        constraints = [models.UniqueConstraint(fields=['cycle', 'employee'], name='one_review_per_cycle')]
+
+    def __str__(self):
+        return f'{self.cycle_id} {self.employee_id}'
+
+    @property
+    def is_complete(self):
+        return self.manager_submitted_at is not None

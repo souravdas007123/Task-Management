@@ -5,15 +5,19 @@ from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.core.paginator import Paginator
-from django.db.models import Avg, Count, Max, Q
+from django.db.models import Avg, Count, Exists, Max, OuterRef, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .budget import refresh_budget_alert
 from .filters import SORT_CHOICES, filter_tasks, parse_int, scope_tasks, sort_tasks
 from .forms import AttachmentForm, ChecklistItemForm, CommentForm, TaskForm, TimeEntryForm
-from .models import Announcement, Attachment, ChecklistItem, Comment, Label, Project, Task, TimeEntry
+from .models import (
+    Announcement, Attachment, ChecklistItem, CompanyDocument, Comment, DocumentAck, Label, Project, Review, Task,
+    Ticket, TimeEntry, Visitor,
+)
 from .permissions import (
     can_delete_task, can_edit_task, can_view_task, is_manager, visible_projects, visible_tasks,
 )
@@ -105,7 +109,33 @@ def dashboard(request):
     context['announcements'] = list(Announcement.objects.filter(
         Q(expires_on__isnull=True) | Q(expires_on__gte=timezone.localdate())
     )[:3])
+    context['todo_items'] = office_todos(request.user)
     return render(request, 'core/dashboard.html', context)
+
+
+def office_todos(user):
+    """Dashboard par 'aapke liye' list: jo office kaam is user ke jawab ka intezaar kar raha hai."""
+    items = []
+    acked = DocumentAck.objects.filter(user=user, document=OuterRef('pk'), version=OuterRef('version'))
+    docs = CompanyDocument.objects.filter(requires_ack=True).annotate(done=Exists(acked)).filter(done=False).count()
+    if docs:
+        items.append((f'{docs} document{"s" if docs != 1 else ""} to acknowledge', reverse('document_list')))
+    own = Review.objects.filter(employee=user, self_submitted_at__isnull=True, cycle__is_open=True).first()
+    if own:
+        items.append(('Submit your self review', reverse('review_detail', args=[own.pk])))
+    give = Review.objects.filter(
+        reviewer=user, manager_submitted_at__isnull=True, cycle__is_open=True,
+    ).exclude(employee=user).count()
+    if give:
+        items.append((f'{give} review{"s" if give != 1 else ""} to write', reverse('review_home')))
+    tickets = Ticket.objects.filter(assigned_to=user, status__in=('open', 'in_progress')).count()
+    if tickets:
+        items.append((f'{tickets} helpdesk ticket{"s" if tickets != 1 else ""} assigned to you', reverse('ticket_list') + '?scope=assigned'))
+    today = timezone.localdate()
+    visitors = Visitor.objects.filter(host=user, status='expected', expected_on=today).count()
+    if visitors:
+        items.append((f'{visitors} visitor{"s" if visitors != 1 else ""} expected today', reverse('visitor_list')))
+    return items
 
 
 @login_required

@@ -45,7 +45,7 @@ def notify(user, message, link='', actor=None, request=None):
         body = message
         if link:
             body += '\n\n' + (request.build_absolute_uri(link) if request is not None else link)
-        subject = 'Taskboard: ' + ' '.join(message.split())[:90]
+        subject = 'Office Hub: ' + ' '.join(message.split())[:90]
         send_mail(subject, body, None, [user.email], fail_silently=True)
     return notification
 

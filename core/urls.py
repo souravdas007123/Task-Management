@@ -2,8 +2,8 @@ from django.contrib.auth import views as auth_views
 from django.urls import path, reverse_lazy
 
 from . import (
-    views, views_api, views_attendance, views_budget, views_hr, views_misc, views_office, views_projects, views_reports,
-    views_work, views_workplace,
+    views, views_api, views_attendance, views_budget, views_company, views_facilities, views_hr, views_misc,
+    views_office, views_projects, views_reports, views_talent, views_work, views_workplace,
 )
 
 urlpatterns = [
@@ -95,6 +95,53 @@ urlpatterns = [
     path('checklists/<int:pk>/', views_workplace.checklist_detail, name='checklist_detail'),
     path('checklists/task/<int:pk>/toggle/', views_workplace.checklist_toggle, name='checklist_toggle'),
 
+    # Meeting rooms
+    path('rooms/', views_facilities.room_list, name='room_list'),
+    path('rooms/book/', views_facilities.room_book, name='room_book'),
+    path('rooms/booking/<int:pk>/cancel/', views_facilities.booking_cancel, name='booking_cancel'),
+    path('hr/rooms/add/', views_facilities.room_add, name='room_add'),
+    path('hr/rooms/<int:pk>/edit/', views_facilities.room_edit, name='room_edit'),
+    # Visitors
+    path('visitors/', views_facilities.visitor_list, name='visitor_list'),
+    path('visitors/add/', views_facilities.visitor_add, name='visitor_add'),
+    path('visitors/<int:pk>/check-in/', views_facilities.visitor_checkin, name='visitor_checkin'),
+    path('visitors/<int:pk>/check-out/', views_facilities.visitor_checkout, name='visitor_checkout'),
+    path('visitors/<int:pk>/cancel/', views_facilities.visitor_cancel, name='visitor_cancel'),
+    # Company documents
+    path('documents/', views_company.document_list, name='document_list'),
+    path('documents/<int:pk>/acknowledge/', views_company.document_ack, name='document_ack'),
+    path('hr/documents/add/', views_company.document_add, name='document_add'),
+    path('hr/documents/<int:pk>/edit/', views_company.document_edit, name='document_edit'),
+    path('hr/documents/<int:pk>/delete/', views_company.document_delete, name='document_delete'),
+    path('hr/documents/<int:pk>/acks/', views_company.document_acks, name='document_acks'),
+    # Helpdesk
+    path('helpdesk/', views_company.ticket_list, name='ticket_list'),
+    path('helpdesk/new/', views_company.ticket_add, name='ticket_add'),
+    path('helpdesk/<int:pk>/', views_company.ticket_detail, name='ticket_detail'),
+    path('helpdesk/<int:pk>/comment/', views_company.ticket_comment, name='ticket_comment'),
+    path('helpdesk/<int:pk>/manage/', views_company.ticket_manage, name='ticket_manage'),
+    path('helpdesk/<int:pk>/close/', views_company.ticket_close, name='ticket_close'),
+    # Recruitment (HR)
+    path('hr/jobs/', views_talent.job_list, name='job_list'),
+    path('hr/jobs/add/', views_talent.job_add, name='job_add'),
+    path('hr/jobs/<int:pk>/', views_talent.job_detail, name='job_detail'),
+    path('hr/jobs/<int:pk>/edit/', views_talent.job_edit, name='job_edit'),
+    path('hr/jobs/<int:pk>/delete/', views_talent.job_delete, name='job_delete'),
+    path('hr/jobs/<int:job_id>/candidates/add/', views_talent.candidate_add, name='candidate_add'),
+    path('hr/candidates/<int:pk>/edit/', views_talent.candidate_edit, name='candidate_edit'),
+    path('hr/candidates/<int:pk>/stage/', views_talent.candidate_stage, name='candidate_stage'),
+    path('hr/candidates/<int:pk>/delete/', views_talent.candidate_delete, name='candidate_delete'),
+    # Performance reviews
+    path('reviews/', views_talent.review_home, name='review_home'),
+    path('reviews/<int:pk>/', views_talent.review_detail, name='review_detail'),
+    path('reviews/<int:pk>/self/', views_talent.review_self, name='review_self'),
+    path('reviews/<int:pk>/manager/', views_talent.review_manager, name='review_manager'),
+    path('hr/reviews/<int:pk>/reviewer/', views_talent.review_reviewer, name='review_reviewer'),
+    path('hr/cycles/add/', views_talent.cycle_add, name='cycle_add'),
+    path('hr/cycles/<int:pk>/', views_talent.cycle_detail, name='cycle_detail'),
+    path('hr/cycles/<int:pk>/generate/', views_talent.cycle_generate, name='cycle_generate'),
+    path('hr/cycles/<int:pk>/toggle/', views_talent.cycle_toggle, name='cycle_toggle'),
+    path('hr/cycles/<int:pk>/delete/', views_talent.cycle_delete, name='cycle_delete'),
     # People, holidays, payslips (sabke liye)
     path('people/', views_hr.people, name='people'),
     path('people/org/', views_hr.org_chart, name='org_chart'),

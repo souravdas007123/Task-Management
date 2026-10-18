@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Tasks{% endblock %} - Task Management</title>
+    <title>{% block title %}Tasks{% endblock %} - Office Hub</title>
     <meta name="color-scheme" content="dark">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,88 +18,135 @@
             <span class="brand-mark" aria-hidden="true">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
             </span>
-            Taskboard
+            Office Hub
         </a>
 
         <nav class="nav" aria-label="Main">
             <a href="{% url 'dashboard' %}" {% if url_name == 'dashboard' and not request.GET.mine %}aria-current="page"{% endif %}>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></svg>
                 Dashboard
             </a>
-            <a href="{% url 'dashboard' %}?mine=1" {% if url_name == 'dashboard' and request.GET.mine %}aria-current="page"{% endif %}>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
-                My tasks
-            </a>
-            <a href="{% url 'board' %}" {% if url_name == 'board' %}aria-current="page"{% endif %}>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="5" height="18" rx="1.5"/><rect x="10" y="3" width="5" height="11" rx="1.5"/><rect x="17" y="3" width="4" height="14" rx="1.5"/></svg>
-                Board
-            </a>
-            <a href="{% url 'timeline' %}" {% if url_name == 'timeline' %}aria-current="page"{% endif %}>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h10M7 12h14M3 18h8"/></svg>
-                Timeline
-            </a>
-            <a href="{% url 'task_calendar' %}" {% if url_name == 'task_calendar' %}aria-current="page"{% endif %}>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-                Calendar
-            </a>
-            <a href="{% url 'workload' %}" {% if url_name == 'workload' %}aria-current="page"{% endif %}>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                Workload
-            </a>
-            <a href="{% url 'project_list' %}" {% if url_name == 'project_list' or url_name == 'project_add' or url_name == 'project_edit' or url_name == 'project_delete' or url_name == 'label_list' %}aria-current="page"{% endif %}>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-                Projects
-            </a>
-            <a href="{% url 'expense_list' %}" {% if url_name == 'expense_list' or url_name == 'expense_add' %}aria-current="page"{% endif %}>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12.5" r="3"/></svg>
-                Expenses
-            </a>
-            {% if user_is_manager %}
-            <a href="{% url 'budget_overview' %}" {% if url_name == 'budget_overview' or url_name == 'project_budget' %}aria-current="page"{% endif %}>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 6.5H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg>
-                Budget
-            </a>
-            {% endif %}
-            <a href="{% url 'people' %}" {% if url_name == 'people' or url_name == 'org_chart' or url_name == 'my_profile' or url_name == 'holiday_list' %}aria-current="page"{% endif %}>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2 20a7 7 0 0 1 14 0M16 4.5a3.5 3.5 0 0 1 0 7M19 20a6 6 0 0 0-3-5.2"/></svg>
-                People
-            </a>
-            <a href="{% url 'my_payslips' %}" {% if url_name == 'my_payslips' or url_name == 'payslip_detail' %}aria-current="page"{% endif %}>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg>
-                My payslips
-            </a>
-            {% if user_is_hr %}
-            <a href="{% url 'hr_employees' %}" {% if url_name == 'hr_employees' or url_name == 'employee_edit' or url_name == 'salary_history' or url_name == 'payroll' or url_name == 'payslip_adjust' or url_name == 'leave_policy' or url_name == 'department_list' %}aria-current="page"{% endif %}>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a3 3 0 0 1 6 0v2M3 13h18"/></svg>
-                HR
-            </a>
-            {% endif %}
-            <a href="{% url 'announcement_list' %}" {% if url_name == 'announcement_list' or url_name == 'announcement_add' or url_name == 'announcement_edit' %}aria-current="page"{% endif %}>
+            <a href="{% url 'announcement_list' %}" {% if url_name in "announcement_list announcement_add announcement_edit" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11v3a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1zM17 8a5 5 0 0 1 0 8"/></svg>
                 Announcements
             </a>
-            <a href="{% url 'attendance_me' %}" {% if url_name == 'attendance_me' or url_name == 'attendance_team' or url_name == 'attendance_person' or url_name == 'attendance_edit' %}aria-current="page"{% endif %}>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+            <div class="nav-section">Work</div>
+            <a href="{% url 'dashboard' %}?mine=1" {% if url_name == 'dashboard' and request.GET.mine %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                My tasks
+            </a>
+            <a href="{% url 'board' %}" {% if url_name in "board" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h5v18H3zM10 3h5v11h-5zM17 3h4v14h-4z"/></svg>
+                Board
+            </a>
+            <a href="{% url 'task_calendar' %}" {% if url_name in "task_calendar" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 10h18M8 3v4M16 3v4"/></svg>
+                Calendar
+            </a>
+            <a href="{% url 'timeline' %}" {% if url_name in "timeline" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h10M7 12h14M3 18h8"/></svg>
+                Timeline
+            </a>
+            <a href="{% url 'workload' %}" {% if url_name in "workload" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2"/></svg>
+                Workload
+            </a>
+            <a href="{% url 'project_list' %}" {% if url_name in "project_list project_add project_edit project_delete label_list" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                Projects
+            </a>
+            <div class="nav-section">Me</div>
+            <a href="{% url 'attendance_me' %}" {% if url_name in "attendance_me attendance_team attendance_person attendance_edit" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3.5 2"/></svg>
                 Attendance
             </a>
-            <a href="{% url 'leave_list' %}" {% if url_name == 'leave_list' or url_name == 'leave_add' %}aria-current="page"{% endif %}>
+            <a href="{% url 'leave_list' %}" {% if url_name in "leave_list leave_add" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11M10 21v-6h4v6"/></svg>
                 Leave
             </a>
+            <a href="{% url 'my_payslips' %}" {% if url_name in "my_payslips payslip_detail" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg>
+                My payslips
+            </a>
+            <a href="{% url 'review_home' %}" {% if url_name in "review_home review_detail cycle_add cycle_detail" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>
+                Reviews
+            </a>
+            <a href="{% url 'expense_list' %}" {% if url_name in "expense_list expense_add" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zM12 10a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>
+                Expenses
+            </a>
+            <div class="nav-section">Office</div>
+            <a href="{% url 'people' %}" {% if url_name in "people org_chart my_profile holiday_list" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM2 20a7 7 0 0 1 14 0M16 4.5a3.5 3.5 0 0 1 0 7M19 20a6 6 0 0 0-3-5.2"/></svg>
+                People
+            </a>
+            <a href="{% url 'room_list' %}" {% if url_name in "room_list room_book room_add room_edit" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M2 21h20M9 8h2M9 12h2M9 16h2"/></svg>
+                Meeting rooms
+            </a>
+            <a href="{% url 'visitor_list' %}" {% if url_name in "visitor_list visitor_add" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM4 21a8 8 0 0 1 16 0"/></svg>
+                Visitors
+            </a>
+            <a href="{% url 'document_list' %}" {% if url_name in "document_list document_add document_edit document_acks" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6"/></svg>
+                Documents
+            </a>
+            <a href="{% url 'ticket_list' %}" {% if url_name in "ticket_list ticket_add ticket_detail" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg>
+                Helpdesk
+            </a>
             {% if user_is_manager %}
-            <a href="{% url 'audit_log' %}" {% if url_name == 'audit_log' %}aria-current="page"{% endif %}>
+            <div class="nav-section">Management</div>
+            <a href="{% url 'budget_overview' %}" {% if url_name in "budget_overview project_budget" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 6.5H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg>
+                Budget
+            </a>
+            <a href="{% url 'task_report' %}" {% if url_name in "task_report" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+                Reports
+            </a>
+            <a href="{% url 'analytics' %}" {% if url_name in "analytics" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>
+                Analytics
+            </a>
+            <a href="{% url 'audit_log' %}" {% if url_name in "audit_log" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6l1 2h3v15H5V6h3zM9 12h6M9 16h6"/></svg>
                 Audit log
             </a>
             {% endif %}
-            <a href="{% url 'task_report' %}" {% if url_name == 'task_report' %}aria-current="page"{% endif %}>
+            {% if user_is_hr %}
+            <div class="nav-section">HR</div>
+            <a href="{% url 'hr_employees' %}" {% if url_name in "hr_employees employee_edit salary_history payroll payslip_adjust leave_policy department_list" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zM9 7V5a3 3 0 0 1 6 0v2M3 13h18"/></svg>
+                Employees and payroll
+            </a>
+            <a href="{% url 'job_list' %}" {% if url_name in "job_list job_add job_detail job_edit job_delete candidate_add candidate_edit" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v12H4zM9 7V5h6v2M4 12h16"/></svg>
+                Recruitment
+            </a>
+            <a href="{% url 'asset_list' %}" {% if url_name in "asset_list asset_add asset_detail asset_edit" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v10H4zM2 19h20M9 15v4M15 15v4"/></svg>
+                Assets
+            </a>
+            <a href="{% url 'checklist_list' %}" {% if url_name in "checklist_list checklist_templates checklist_detail" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                Onboarding
+            </a>
+            {% endif %}
+            {% if not user_is_manager %}
+            <div class="nav-section">Reports</div>
+            <a href="{% url 'task_report' %}" {% if url_name in "task_report" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
                 Reports
             </a>
-            <a href="{% url 'analytics' %}" {% if url_name == 'analytics' %}aria-current="page"{% endif %}>
+            <a href="{% url 'analytics' %}" {% if url_name in "analytics" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>
                 Analytics
             </a>
+            {% endif %}
+            <div class="nav-section">Inbox</div>
             <a href="{% url 'notifications' %}" {% if url_name == 'notifications' %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
                 Notifications

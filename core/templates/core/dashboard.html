@@ -13,6 +13,15 @@
     <a href="{% url 'add_task' %}{% if current_project %}?project={{ current_project.pk }}{% endif %}" class="btn btn-primary">Add task</a>
 </div>
 
+{% if todo_items %}
+<section class="card" aria-labelledby="todo-title">
+    <h2 class="card-title" id="todo-title">Waiting for you</h2>
+    <ul class="todo-list">
+        {% for text, url in todo_items %}<li><a href="{{ url }}">{{ text }}</a></li>{% endfor %}
+    </ul>
+</section>
+{% endif %}
+
 {% if announcements %}
 <section class="card" aria-labelledby="news-title">
     <div class="card-title-row"><h2 class="card-title" id="news-title">Announcements</h2><a href="{% url 'announcement_list' %}" class="btn btn-ghost btn-sm">See all</a></div>
