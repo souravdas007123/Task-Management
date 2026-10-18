@@ -1,0 +1,94 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Leave{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Leave</h1>
+        <p class="page-sub">{% if manager %}Review leave requests from the team.{% else %}Your leave requests. A manager approves or rejects each one.{% endif %}</p>
+    </div>
+    <div class="head-actions">
+        <a href="{% url 'leave_add' %}" class="btn btn-primary">Request leave</a>
+    </div>
+</div>
+
+{% if away %}
+<section class="card" aria-labelledby="away-title">
+    <h2 class="card-title" id="away-title">Away in the next {{ away_days }} days</h2>
+    <ul class="plain-list">
+        {% for leave in away %}
+        <li><span>{{ leave.user.username }} <span class="muted">({{ leave.get_kind_display }})</span></span><strong>{{ leave.start_date|date:"d M" }} to {{ leave.end_date|date:"d M" }}</strong></li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+<section class="card">
+    <form method="GET" class="filter-bar" role="search">
+        <select name="status" class="form-control" aria-label="Status">
+            <option value="">Any status</option>
+            {% for value, label in status_choices %}<option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">Apply</button>
+        {% if current_status %}<a href="{% url 'leave_list' %}" class="btn btn-ghost">Clear</a>{% endif %}
+    </form>
+
+    {% if leaves %}
+    <div class="table-wrap">
+        <table class="data">
+            <thead>
+                <tr>
+                    <th scope="col">Person</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Dates</th>
+                    <th scope="col" class="num">Days</th>
+                    <th scope="col">Status</th>
+                    <th scope="col"><span class="sr-only">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for leave in leaves %}
+                <tr>
+                    <td>{{ leave.user.username }}</td>
+                    <td>
+                        {{ leave.get_kind_display }}
+                        {% if leave.reason %}<div class="task-meta"><span class="muted">{{ leave.reason }}</span></div>{% endif %}
+                        {% if leave.review_note %}<div class="task-meta"><span class="overdue">{{ leave.review_note }}</span></div>{% endif %}
+                    </td>
+                    <td class="nowrap">{{ leave.start_date|date:"d M Y" }}{% if leave.end_date != leave.start_date %} to {{ leave.end_date|date:"d M Y" }}{% endif %}</td>
+                    <td class="num">{{ leave.days }}</td>
+                    <td><span class="pill"><span class="dot {% if leave.status == 'approved' %}c-completed{% elif leave.status == 'pending' %}c-pending{% else %}p-high{% endif %}"></span>{{ leave.get_status_display }}</span></td>
+                    <td class="row-actions">
+                        {% if leave.can_review %}
+                            {% if leave.status != 'approved' %}
+                            <form method="POST" action="{% url 'leave_approve' leave.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="next" value="{{ next_url }}"><button type="submit" class="btn btn-ghost btn-sm">Approve</button></form>
+                            {% endif %}
+                            {% if leave.status != 'rejected' %}
+                            <form method="POST" action="{% url 'leave_reject' leave.pk %}" class="inline" onsubmit="var n = prompt('Reason for rejecting (optional)'); if (n === null) { return false; } this.note.value = n;">{% csrf_token %}<input type="hidden" name="next" value="{{ next_url }}"><input type="hidden" name="note" value=""><button type="submit" class="btn btn-ghost btn-sm">Reject</button></form>
+                            {% endif %}
+                        {% endif %}
+                        {% if leave.can_cancel %}
+                        <form method="POST" action="{% url 'leave_cancel' leave.pk %}" class="inline" onsubmit="return confirm('Cancel this request?');">{% csrf_token %}<button type="submit" class="link-btn">Cancel</button></form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pager" aria-label="Pages">
+        {% if page_obj.has_previous %}<a class="btn btn-ghost btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+        <span class="muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="btn btn-ghost btn-sm" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="empty">
+        <p>No leave requests{% if current_status %} with this status{% endif %}.</p>
+        <a href="{% url 'leave_add' %}" class="btn btn-primary">Request leave</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

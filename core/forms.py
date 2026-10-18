@@ -3,8 +3,26 @@ from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator
 from django.utils import timezone
 
-from .models import Attachment, ChecklistItem, Comment, Expense, Label, Project, Task, TimeEntry
+from .models import (
+    Attachment, ChecklistItem, Comment, Expense, Label, LeaveRequest, Project, Task, TimeEntry,
+)
+from .permissions import visible_projects, visible_tasks
 from .validators import ALLOWED_ATTACHMENT_EXTENSIONS, validate_file_size
+
+
+def _reaches(start, target_pk, limit=500):
+    """True agar `start` se blocked_by chain chalte hue target_pk mil jaye (loop check)."""
+    seen = set()
+    stack = [start.pk]
+    while stack and len(seen) < limit:
+        pk = stack.pop()
+        if pk == target_pk:
+            return True
+        if pk in seen:
+            continue
+        seen.add(pk)
+        stack.extend(Task.blocked_by.through.objects.filter(from_task_id=pk).values_list('to_task_id', flat=True))
+    return False
 
 
 class TaskForm(forms.ModelForm):
@@ -13,6 +31,7 @@ class TaskForm(forms.ModelForm):
         fields = [
             'title', 'description', 'assigned_to', 'project', 'labels', 'issue_image',
             'status', 'priority', 'progress', 'start_date', 'due_date', 'estimated_hours', 'recurrence',
+            'blocked_by',
         ]
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
@@ -28,15 +47,18 @@ class TaskForm(forms.ModelForm):
             'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'estimated_hours': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.25'}),
             'recurrence': forms.Select(attrs={'class': 'form-control'}),
+            'blocked_by': forms.SelectMultiple(attrs={'class': 'form-control', 'size': 5}),
         }
         help_texts = {
+            'blocked_by': 'This task cannot be completed until these tasks are completed. Hold Ctrl/Cmd to pick several.',
             'recurrence': 'When a repeating task is completed, the next one is created automatically.',
             'start_date': 'Optional. Used for the timeline.',
             'estimated_hours': 'How many hours you expect this to take. Used for workload planning.',
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.user = user
         # Sirf active users ko assign kar sakte hain (par edit ke time purana assignee bana rahe)
         assignees = User.objects.filter(is_active=True)
         if self.instance.pk:
@@ -45,6 +67,21 @@ class TaskForm(forms.ModelForm):
         self.fields['project'].empty_label = 'No project'
         self.fields['labels'].required = False
         self.fields['recurrence'].required = False
+
+        # Private projects aur unke tasks sirf unhe dikhein jinhe access hai (current value hamesha rahe)
+        projects = Project.objects.all()
+        blockers = Task.objects.exclude(status='Completed')
+        if user is not None:
+            projects = visible_projects(projects, user)
+            blockers = visible_tasks(blockers, user)
+        if self.instance.pk:
+            if self.instance.project_id:
+                projects = projects | Project.objects.filter(pk=self.instance.project_id)
+            blockers = blockers.exclude(pk=self.instance.pk) | self.instance.blocked_by.all()
+        self.fields['project'].queryset = projects.distinct()
+        self.fields['blocked_by'].queryset = blockers.distinct().order_by('-created_at')
+        self.fields['blocked_by'].required = False
+        self.fields['blocked_by'].label_from_instance = lambda task: f'#{task.pk} {task.title}'
 
     def clean_recurrence(self):
         # Field na aaye to purani value rakho (edit) ya 'none' (naya task)
@@ -59,18 +96,32 @@ class TaskForm(forms.ModelForm):
         due = cleaned.get('due_date')
         if start and due and start > due:
             self.add_error('due_date', 'The due date cannot be before the start date.')
+
+        blockers = cleaned.get('blocked_by')
+        if blockers is not None:
+            if self.instance.pk and any(_reaches(blocker, self.instance.pk) for blocker in blockers):
+                self.add_error('blocked_by', 'These tasks would block each other in a loop.')
+            elif cleaned.get('status') == 'Completed' and any(b.status != 'Completed' for b in blockers):
+                self.add_error('status', 'Finish the blocking tasks before completing this one.')
         return cleaned
 
 
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
-        fields = ['name', 'description', 'budget']
+        fields = ['name', 'description', 'budget', 'is_private', 'members']
         widgets = {
+            'members': forms.CheckboxSelectMultiple(attrs={'class': 'checks'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'budget': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01'}),
         }
+
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['members'].queryset = User.objects.filter(is_active=True).order_by('username')
+        self.fields['members'].required = False
 
 
 class ExpenseForm(forms.ModelForm):
@@ -187,3 +238,26 @@ class TimeEntryForm(forms.Form):
             note=self.cleaned_data.get('note', ''),
             worked_on=self.cleaned_data['worked_on'],
         )
+
+
+class LeaveRequestForm(forms.ModelForm):
+    class Meta:
+        model = LeaveRequest
+        fields = ['kind', 'start_date', 'end_date', 'reason']
+        widgets = {
+            'kind': forms.Select(attrs={'class': 'form-control'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'reason': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional'}),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        start = cleaned.get('start_date')
+        end = cleaned.get('end_date')
+        if start and end:
+            if end < start:
+                self.add_error('end_date', 'The last day cannot be before the first day.')
+            elif (end - start).days > 365:
+                self.add_error('end_date', 'A leave request cannot be longer than a year.')
+        return cleaned

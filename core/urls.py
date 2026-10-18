@@ -1,7 +1,9 @@
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import path, reverse_lazy
 
-from . import views, views_api, views_budget, views_misc, views_projects, views_reports, views_work
+from . import (
+    views, views_api, views_budget, views_misc, views_office, views_projects, views_reports, views_work,
+)
 
 urlpatterns = [
     # Tasks
@@ -50,6 +52,14 @@ urlpatterns = [
     path('expenses/<int:pk>/reject/', views_budget.expense_reject, name='expense_reject'),
     path('expenses/<int:pk>/delete/', views_budget.expense_delete, name='expense_delete'),
 
+    # Office: leave aur audit log
+    path('leave/', views_office.leave_list, name='leave_list'),
+    path('leave/add/', views_office.leave_add, name='leave_add'),
+    path('leave/<int:pk>/approve/', views_office.leave_approve, name='leave_approve'),
+    path('leave/<int:pk>/reject/', views_office.leave_reject, name='leave_reject'),
+    path('leave/<int:pk>/cancel/', views_office.leave_cancel, name='leave_cancel'),
+    path('audit/', views_office.audit_log, name='audit_log'),
+
     # Reports
     path('report/', views_reports.task_report, name='task_report'),
     path('analytics/', views_reports.analytics, name='analytics'),
@@ -67,4 +77,26 @@ urlpatterns = [
     # Auth
     path('login/', auth_views.LoginView.as_view(), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('password/change/', auth_views.PasswordChangeView.as_view(
+        template_name='core/auth/password_change.html', success_url=reverse_lazy('password_change_done'),
+    ), name='password_change'),
+    path('password/change/done/', auth_views.PasswordChangeDoneView.as_view(
+        template_name='core/auth/password_change_done.html',
+    ), name='password_change_done'),
+    path('password/reset/', auth_views.PasswordResetView.as_view(
+        template_name='core/auth/password_reset_form.html',
+        email_template_name='core/auth/password_reset_email.txt',
+        subject_template_name='core/auth/password_reset_subject.txt',
+        success_url=reverse_lazy('password_reset_done'),
+    ), name='password_reset'),
+    path('password/reset/sent/', auth_views.PasswordResetDoneView.as_view(
+        template_name='core/auth/password_reset_done.html',
+    ), name='password_reset_done'),
+    path('password/reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(
+        template_name='core/auth/password_reset_confirm.html',
+        success_url=reverse_lazy('password_reset_complete'),
+    ), name='password_reset_confirm'),
+    path('password/reset/complete/', auth_views.PasswordResetCompleteView.as_view(
+        template_name='core/auth/password_reset_complete.html',
+    ), name='password_reset_complete'),
 ]

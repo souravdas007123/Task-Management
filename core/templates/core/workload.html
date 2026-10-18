@@ -33,7 +33,7 @@
                 {% for r in rows %}
                 <tr>
                     <td>
-                        <div class="assignee"><span class="avatar" aria-hidden="true">{{ r.username|slice:":1" }}</span><a href="{% url 'dashboard' %}?assigned=other&amp;q={{ r.username|urlencode }}">{{ r.username }}</a></div>
+                        <div class="assignee"><span class="avatar" aria-hidden="true">{{ r.username|slice:":1" }}</span><a href="{% url 'dashboard' %}?assigned=other&amp;q={{ r.username|urlencode }}">{{ r.username }}</a>{% if r.away %} <span class="chip">On leave</span>{% endif %}</div>
                         {% if r.unestimated %}<div class="task-meta"><span class="muted">{{ r.unestimated }} task{{ r.unestimated|pluralize }} without an estimate</span></div>{% endif %}
                     </td>
                     <td class="num">{{ r.open_tasks }}</td>

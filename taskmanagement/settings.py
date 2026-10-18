@@ -82,12 +82,27 @@ WSGI_APPLICATION = 'taskmanagement.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Default SQLite hai (local ke liye). Office/production mein PostgreSQL ke liye DJANGO_DB_ENGINE=postgres set karo
+# aur DJANGO_DB_NAME, DJANGO_DB_USER, DJANGO_DB_PASSWORD, DJANGO_DB_HOST, DJANGO_DB_PORT do (psycopg install hona chahiye).
+if os.environ.get('DJANGO_DB_ENGINE', 'sqlite').lower() in ('postgres', 'postgresql'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DJANGO_DB_NAME', 'taskboard'),
+            'USER': os.environ.get('DJANGO_DB_USER', 'taskboard'),
+            'PASSWORD': os.environ.get('DJANGO_DB_PASSWORD', ''),
+            'HOST': os.environ.get('DJANGO_DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DJANGO_DB_PORT', '5432'),
+            'CONN_MAX_AGE': 60,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -125,6 +140,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+# `python manage.py collectstatic` yahan files jama karta hai; production mein nginx isse serve karta hai
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -152,3 +169,25 @@ DEFAULT_FROM_EMAIL = os.environ.get('DJANGO_FROM_EMAIL', 'Taskboard <noreply@loc
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
+
+
+# ---------------------------------------------------------------- production
+# DJANGO_DEBUG=False par ye apne aap lag jata hai. Local development (DEBUG=True) par kuch nahi badalta.
+_INSECURE_KEY_PREFIX = 'django-insecure-'
+
+if not DEBUG:
+    if SECRET_KEY.startswith(_INSECURE_KEY_PREFIX):
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured('Set DJANGO_SECRET_KEY to a long random value when DJANGO_DEBUG is False.')
+
+    # HTTPS ke peeche (nginx/load balancer) chalane ke liye. Sirf HTTP par test karna ho to DJANGO_HTTPS=False.
+    _https = os.environ.get('DJANGO_HTTPS', 'True').lower() in ('1', 'true', 'yes')
+    SESSION_COOKIE_SECURE = _https
+    CSRF_COOKIE_SECURE = _https
+    SECURE_SSL_REDIRECT = _https and os.environ.get('DJANGO_SSL_REDIRECT', 'False').lower() in ('1', 'true', 'yes')
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if _https else None
+    SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_HSTS_SECONDS', '0'))
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# https://office.example.com jaise origins (comma-separated), agar app proxy ke peeche alag domain par ho
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()]

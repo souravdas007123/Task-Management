@@ -14,8 +14,8 @@ from django.views.decorators.http import require_GET, require_POST
 
 from .filters import filter_tasks, scope_tasks, sort_tasks
 from .models import Task
-from .permissions import can_edit_task
-from .services import change_status
+from .permissions import can_edit_task, visible_tasks
+from .services import BlockedError, change_status
 
 MAX_PAGE_SIZE = 100
 
@@ -85,7 +85,11 @@ def api_task_list(request):
 @require_GET
 def api_task_detail(request, pk):
     task = get_object_or_404(
-        Task.objects.select_related('assigned_to', 'created_by', 'project').prefetch_related('labels'), pk=pk,
+        visible_tasks(
+            Task.objects.select_related('assigned_to', 'created_by', 'project').prefetch_related('labels'),
+            request.user,
+        ),
+        pk=pk,
     )
     return JsonResponse(task_to_dict(task))
 
@@ -93,7 +97,9 @@ def api_task_detail(request, pk):
 @api_login_required
 @require_POST
 def api_task_status(request, pk):
-    task = get_object_or_404(Task.objects.select_related('assigned_to', 'created_by', 'project'), pk=pk)
+    task = get_object_or_404(
+        visible_tasks(Task.objects.select_related('assigned_to', 'created_by', 'project'), request.user), pk=pk,
+    )
     if not can_edit_task(request.user, task):
         return JsonResponse({'error': 'You cannot change this task.'}, status=403)
 
@@ -111,6 +117,9 @@ def api_task_status(request, pk):
     if new_status not in dict(Task.STATUS_CHOICES):
         return JsonResponse({'error': 'Invalid status.', 'allowed': [s for s, _ in Task.STATUS_CHOICES]}, status=400)
 
-    change_status(task, new_status, request.user, request=request)
+    try:
+        change_status(task, new_status, request.user, request=request)
+    except BlockedError as error:
+        return JsonResponse({'error': str(error)}, status=409)
     task.refresh_from_db()
     return JsonResponse(task_to_dict(task))

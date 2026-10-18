@@ -3,6 +3,7 @@ from django.db.models import Case, F, IntegerField, Q, When
 from django.utils import timezone
 
 from .models import Task
+from .permissions import visible_tasks
 
 SORT_CHOICES = [
     ('newest', 'Newest first'),
@@ -24,7 +25,8 @@ def parse_int(value):
 
 
 def scope_tasks(queryset, params, user):
-    """Scope: 'My tasks' (mine=1) aur project. Dashboard stats aur board isi par chalte hain."""
+    """Scope: private projects ke tasks hatao, phir 'My tasks' (mine=1) aur project. Dashboard stats aur board isi par chalte hain."""
+    queryset = visible_tasks(queryset, user)
     if params.get('mine') == '1':
         queryset = queryset.filter(assigned_to=user)
     project_id = parse_int(params.get('project'))

@@ -40,6 +40,7 @@ def build_workload(today=None):
     rows = {}
     for user in User.objects.filter(is_active=True).order_by('username'):
         rows[user.pk] = {
+            'user_id': user.pk,
             'username': user.username,
             'capacity': capacities.get(user.pk, DEFAULT_CAPACITY),
             'open_tasks': 0,

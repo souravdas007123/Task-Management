@@ -8,6 +8,8 @@ from django.utils import timezone
 
 from .filters import parse_int, scope_tasks
 from .models import Project, Task
+from .permissions import visible_projects
+from .views_office import away_user_ids
 from .workload import (
     DUE_SOON_DAYS, HIGH_LOAD, TIMELINE_WEEKS, build_timeline, build_workload, week_start,
 )
@@ -19,8 +21,12 @@ SHIFT_WEEKS = 4
 @login_required
 def workload(request):
     today = timezone.localdate()
+    rows = build_workload(today)
+    away_ids = away_user_ids(today)
+    for row in rows:
+        row['away'] = row['user_id'] in away_ids
     return render(request, 'core/workload.html', {
-        'rows': build_workload(today),
+        'rows': rows,
         'due_soon_days': DUE_SOON_DAYS,
         'high_load': HIGH_LOAD,
         'week_start': week_start(today),
@@ -60,7 +66,7 @@ def timeline(request):
         'prev_start': (window_start - shift).isoformat(),
         'next_start': (window_start + shift).isoformat(),
         'mine': request.GET.get('mine') == '1',
-        'projects': Project.objects.all(),
+        'projects': visible_projects(Project.objects.all(), request.user),
         'current_project_id': parse_int(request.GET.get('project')),
         'truncated': len(tasks) >= TIMELINE_LIMIT,
         'limit': TIMELINE_LIMIT,

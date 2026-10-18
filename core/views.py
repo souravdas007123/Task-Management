@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
+from django.http import Http404
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Max
 from django.shortcuts import get_object_or_404, redirect, render
@@ -13,9 +14,11 @@ from .budget import refresh_budget_alert
 from .filters import SORT_CHOICES, filter_tasks, parse_int, scope_tasks, sort_tasks
 from .forms import AttachmentForm, ChecklistItemForm, CommentForm, TaskForm, TimeEntryForm
 from .models import Attachment, ChecklistItem, Comment, Label, Project, Task, TimeEntry
-from .permissions import can_delete_task, can_edit_task, is_manager
+from .permissions import (
+    can_delete_task, can_edit_task, can_view_task, is_manager, visible_projects, visible_tasks,
+)
 from .services import (
-    annotate_permissions, diff_snapshots, display_name, log_activity, notify,
+    annotate_permissions, diff_snapshots, display_name, find_mentions, log_activity, notify,
     notify_many, record_task_changes, snapshot_task,
 )
 
@@ -95,9 +98,9 @@ def dashboard(request):
         'priority_choices': Task.PRIORITY_CHOICES,
         'sort_choices': SORT_CHOICES,
         'users': User.objects.filter(is_active=True).order_by('username'),
-        'projects': Project.objects.all(),
+        'projects': visible_projects(Project.objects.all(), request.user),
         'labels': Label.objects.all(),
-        'current_project': Project.objects.filter(pk=parse_int(params.get('project'))).first(),
+        'current_project': visible_projects(Project.objects.all(), request.user).filter(pk=parse_int(params.get('project'))).first(),
     }
     return render(request, 'core/dashboard.html', context)
 
@@ -105,7 +108,7 @@ def dashboard(request):
 @login_required
 def add_task(request):
     if request.method == 'POST':
-        form = TaskForm(request.POST, request.FILES)
+        form = TaskForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             task = form.save(commit=False)
             task.created_by = request.user
@@ -124,19 +127,19 @@ def add_task(request):
         project_id = parse_int(request.GET.get('project'))
         if project_id:
             initial['project'] = project_id
-        form = TaskForm(initial=initial)
+        form = TaskForm(initial=initial, user=request.user)
     return render(request, 'core/add_task.html', {'form': form, 'page_title': 'Add Task'})
 
 
 @login_required
 def update_task(request, pk):
-    task = get_object_or_404(task_queryset(), pk=pk)
+    task = get_object_or_404(visible_tasks(task_queryset(), request.user), pk=pk)
     if not can_edit_task(request.user, task):
         raise PermissionDenied
 
     if request.method == 'POST':
         before = snapshot_task(task)
-        form = TaskForm(request.POST, request.FILES, instance=task)
+        form = TaskForm(request.POST, request.FILES, instance=task, user=request.user)
         if form.is_valid():
             task = form.save()
             changes = diff_snapshots(before, snapshot_task(task))
@@ -144,13 +147,13 @@ def update_task(request, pk):
             messages.success(request, 'Task updated.')
             return redirect('dashboard')
     else:
-        form = TaskForm(instance=task)
+        form = TaskForm(instance=task, user=request.user)
     return render(request, 'core/update_task.html', {'form': form, 'page_title': 'Update Task', 'task': task})
 
 
 @login_required
 def delete_task(request, pk):
-    task = get_object_or_404(Task, pk=pk)
+    task = get_object_or_404(visible_tasks(Task.objects.all(), request.user), pk=pk)
     if not can_delete_task(request.user, task):
         raise PermissionDenied
 
@@ -183,7 +186,10 @@ def format_minutes(total):
 @login_required
 def task_detail(request, pk):
     task = get_object_or_404(
-        Task.objects.select_related('assigned_to', 'created_by', 'project').prefetch_related('labels'),
+        visible_tasks(
+            Task.objects.select_related('assigned_to', 'created_by', 'project').prefetch_related('labels'),
+            request.user,
+        ),
         pk=pk,
     )
     checklist = list(task.checklist.all())
@@ -201,7 +207,10 @@ def task_detail(request, pk):
         percent = int(logged_minutes * 100 / estimated_minutes)
         effort = {'percent': percent, 'bar': min(percent, 100), 'over': logged_minutes > estimated_minutes}
 
+    visible = visible_tasks(Task.objects.all(), request.user)
     context = {
+        'blocked_by': visible.filter(blocking=task).order_by('id'),
+        'blocking': visible.filter(blocked_by=task).order_by('id'),
         'effort': effort,
         'task': task,
         'can_edit': can_edit,
@@ -222,8 +231,15 @@ def task_detail(request, pk):
     return render(request, 'core/task_detail.html', context)
 
 
+def _require_visible(request, task):
+    """Chhupa hua (private project) task 404 deta hai, jaise wo exist hi na kare."""
+    if not can_view_task(request.user, task):
+        raise Http404
+    return task
+
+
 def _editable_task_or_403(request, pk):
-    task = get_object_or_404(Task, pk=pk)
+    task = get_object_or_404(visible_tasks(Task.objects.all(), request.user), pk=pk)
     if not can_edit_task(request.user, task):
         raise PermissionDenied
     return task
@@ -232,7 +248,7 @@ def _editable_task_or_403(request, pk):
 @login_required
 @require_POST
 def add_comment(request, pk):
-    task = get_object_or_404(Task, pk=pk)
+    task = get_object_or_404(visible_tasks(Task.objects.all(), request.user), pk=pk)
     form = CommentForm(request.POST)
     if form.is_valid():
         comment = form.save(commit=False)
@@ -240,10 +256,17 @@ def add_comment(request, pk):
         comment.author = request.user
         comment.save()
         log_activity(task, request.user, 'Added a comment')
+        link = task.get_absolute_url() + '#comments'
+        mentioned = find_mentions(comment.body, task)
+        mentioned_ids = {user.pk for user in mentioned}
         notify_many(
-            [task.assigned_to, task.created_by],
+            [user for user in (task.assigned_to, task.created_by) if user and user.pk not in mentioned_ids],
             f'{display_name(request.user)} commented on "{task.title}"',
-            link=task.get_absolute_url() + '#comments', actor=request.user, request=request,
+            link=link, actor=request.user, request=request,
+        )
+        notify_many(
+            mentioned, f'{display_name(request.user)} mentioned you on "{task.title}"',
+            link=link, actor=request.user, request=request,
         )
         messages.success(request, 'Comment added.')
     else:
@@ -255,7 +278,7 @@ def add_comment(request, pk):
 @require_POST
 def delete_comment(request, pk):
     comment = get_object_or_404(Comment, pk=pk)
-    task = comment.task
+    task = _require_visible(request, comment.task)
     if not (is_manager(request.user) or comment.author_id == request.user.id):
         raise PermissionDenied
     comment.delete()
@@ -284,7 +307,7 @@ def add_checklist_item(request, pk):
 @require_POST
 def toggle_checklist_item(request, pk):
     item = get_object_or_404(ChecklistItem.objects.select_related('task'), pk=pk)
-    task = item.task
+    task = _require_visible(request, item.task)
     if not can_edit_task(request.user, task):
         raise PermissionDenied
     item.is_done = not item.is_done
@@ -298,7 +321,7 @@ def toggle_checklist_item(request, pk):
 @require_POST
 def delete_checklist_item(request, pk):
     item = get_object_or_404(ChecklistItem.objects.select_related('task'), pk=pk)
-    task = item.task
+    task = _require_visible(request, item.task)
     if not can_edit_task(request.user, task):
         raise PermissionDenied
     text = item.text
@@ -329,7 +352,7 @@ def add_attachment(request, pk):
 @require_POST
 def delete_attachment(request, pk):
     attachment = get_object_or_404(Attachment.objects.select_related('task'), pk=pk)
-    task = attachment.task
+    task = _require_visible(request, attachment.task)
     if not can_edit_task(request.user, task):
         raise PermissionDenied
     name = attachment.original_name or attachment.file.name
@@ -360,7 +383,7 @@ def add_time_entry(request, pk):
 @require_POST
 def delete_time_entry(request, pk):
     entry = get_object_or_404(TimeEntry.objects.select_related('task'), pk=pk)
-    task = entry.task
+    task = _require_visible(request, entry.task)
     if not (is_manager(request.user) or entry.user_id == request.user.id):
         raise PermissionDenied
     entry.delete()

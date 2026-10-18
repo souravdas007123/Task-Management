@@ -9,6 +9,9 @@ Jis user ka profile nahi hai wo 'member' maana jata hai.
 from functools import wraps
 
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
+
+from .models import Project
 
 
 def role_of(user):
@@ -22,6 +25,39 @@ def role_of(user):
 
 def is_manager(user):
     return role_of(user) in ('admin', 'manager')
+
+
+def visible_tasks(queryset, user):
+    """Private project ke tasks sirf members/managers/assignee/creator ko; baaki sab ko sab dikhta hai."""
+    if is_manager(user):
+        return queryset
+    # Subquery use kiya hai (join nahi) taaki rows duplicate na hon aur counts sahi rahein
+    member_projects = Project.objects.filter(members=user).values('pk')
+    return queryset.filter(
+        Q(project__isnull=True)
+        | Q(project__is_private=False)
+        | Q(project_id__in=member_projects)
+        | Q(assigned_to=user)
+        | Q(created_by=user)
+    )
+
+
+def visible_projects(queryset, user):
+    if is_manager(user):
+        return queryset
+    member_projects = Project.objects.filter(members=user).values('pk')
+    return queryset.filter(Q(is_private=False) | Q(pk__in=member_projects))
+
+
+def can_view_task(user, task):
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    if is_manager(user) or not task.project_id:
+        return True
+    if task.assigned_to_id == user.id or task.created_by_id == user.id:
+        return True
+    project = task.project
+    return (not project.is_private) or project.members.filter(pk=user.pk).exists()
 
 
 def can_edit_task(user, task):

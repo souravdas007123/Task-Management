@@ -25,7 +25,7 @@ from .budget import (
 from .filters import parse_int
 from .forms import ExpenseForm
 from .models import Expense, Project, Task
-from .permissions import is_manager, manager_required
+from .permissions import is_manager, manager_required, visible_projects, visible_tasks
 from .services import display_name, log_activity, notify, notify_many
 from .views_reports import _csv_safe
 
@@ -125,7 +125,7 @@ def expense_list(request):
         'totals_approved': totals.get('approved', 0),
         'totals_pending': totals.get('submitted', 0),
         'totals_rejected': totals.get('rejected', 0),
-        'projects': Project.objects.all(),
+        'projects': visible_projects(Project.objects.all(), request.user),
         'status_choices': Expense.STATUS_CHOICES,
         'category_choices': Expense.CATEGORY_CHOICES,
         'current': {'status': status, 'category': category, 'project': project_id},
@@ -133,10 +133,17 @@ def expense_list(request):
     })
 
 
+def _limit_choices(form, user):
+    """Private projects aur unke tasks expense form ke dropdown mein sirf unhe dikhein jinhe access hai."""
+    form.fields['project'].queryset = visible_projects(Project.objects.all(), user)
+    form.fields['task'].queryset = visible_tasks(Task.objects.order_by('-created_at'), user)
+
+
 @login_required
 def expense_add(request):
     if request.method == 'POST':
         form = ExpenseForm(request.POST, request.FILES)
+        _limit_choices(form, request.user)
         if form.is_valid():
             expense = form.save(commit=False)
             expense.submitted_by = request.user
@@ -165,7 +172,7 @@ def expense_add(request):
     else:
         initial = {}
         task_id = parse_int(request.GET.get('task'))
-        task = Task.objects.filter(pk=task_id).first() if task_id else None
+        task = visible_tasks(Task.objects.all(), request.user).filter(pk=task_id).first() if task_id else None
         project_id = parse_int(request.GET.get('project'))
         if task:
             initial['task'] = task.pk
@@ -174,6 +181,7 @@ def expense_add(request):
         if project_id and 'project' not in initial:
             initial['project'] = project_id
         form = ExpenseForm(initial=initial)
+        _limit_choices(form, request.user)
     return render(request, 'core/simple_form.html', {
         'form': form, 'page_title': 'Add Expense', 'back_url': 'expense_list',
         'help': 'Managers\' expenses are approved straight away. Everyone else\'s are reviewed first.',

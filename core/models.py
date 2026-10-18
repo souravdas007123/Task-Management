@@ -60,6 +60,12 @@ class Project(models.Model):
     )
     # 0, 80 ya 100: budget alert kis level tak bhej chuke hain (baar-baar notification na jaye)
     budget_alerted_level = models.PositiveSmallIntegerField(default=0, editable=False)
+    # Private project ke tasks sirf members, managers aur us task ke assignee/creator ko dikhte hain
+    is_private = models.BooleanField(
+        default=False,
+        help_text='Only the members below (and managers) can see the tasks of a private project.',
+    )
+    members = models.ManyToManyField(User, blank=True, related_name='member_projects')
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_projects')
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -121,6 +127,8 @@ class Task(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='created_tasks', null=True, blank=True)
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True, related_name='tasks')
     labels = models.ManyToManyField(Label, blank=True, related_name='tasks')
+    # Jab tak ye tasks complete na hon, ye task complete nahi ho sakta
+    blocked_by = models.ManyToManyField('self', symmetrical=False, blank=True, related_name='blocking')
 
     # Issue related image upload
     issue_image = models.ImageField(upload_to='issue_images/', blank=True, null=True, validators=[validate_file_size])
@@ -168,6 +176,12 @@ class Task(models.Model):
     @property
     def is_overdue(self):
         return bool(self.due_date and self.status != 'Completed' and self.due_date < timezone.localdate())
+
+    def open_blockers(self):
+        """Wo tasks jo is task ko rok rahe hain (abhi complete nahi hue)."""
+        if not self.pk:
+            return Task.objects.none()
+        return self.blocked_by.exclude(status='Completed')
 
     def next_due_date(self):
         base = self.due_date or timezone.localdate()
@@ -382,3 +396,39 @@ class Expense(models.Model):
 
     def __str__(self):
         return f'{self.title} ({self.amount})'
+
+
+class LeaveRequest(models.Model):
+    KIND_CHOICES = [
+        ('annual', 'Annual leave'),
+        ('sick', 'Sick leave'),
+        ('casual', 'Casual leave'),
+        ('unpaid', 'Unpaid leave'),
+        ('other', 'Other'),
+    ]
+    STATUS_CHOICES = [
+        ('pending', 'Waiting for review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='leave_requests')
+    kind = models.CharField(max_length=10, choices=KIND_CHOICES, default='annual')
+    start_date = models.DateField()
+    end_date = models.DateField()
+    reason = models.CharField(max_length=300, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='leave_reviewed')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-start_date', '-id']
+
+    def __str__(self):
+        return f'{self.user_id}: {self.start_date} to {self.end_date}'
+
+    @property
+    def days(self):
+        return (self.end_date - self.start_date).days + 1

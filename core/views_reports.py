@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from .filters import scope_tasks
 from .models import Task, TimeEntry
+from .permissions import visible_tasks
 from .views import format_minutes
 
 WEEKS_SHOWN = 8
@@ -23,7 +24,9 @@ def _csv_safe(value):
 
 @login_required
 def task_report(request):
-    tasks = Task.objects.select_related('assigned_to', 'project').prefetch_related('labels')
+    tasks = visible_tasks(
+        Task.objects.select_related('assigned_to', 'project').prefetch_related('labels'), request.user,
+    )
     status_filter = request.GET.get('status')
     # Sirf valid status hi filter hone do; galat value par saare tasks dikhao
     if status_filter in dict(Task.STATUS_CHOICES):
@@ -73,7 +76,7 @@ def _week_start(day):
 @login_required
 def analytics(request):
     today = timezone.localdate()
-    tasks = Task.objects.all()
+    tasks = visible_tasks(Task.objects.all(), request.user)
 
     # Per-person workload
     people = list(

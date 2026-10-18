@@ -9,12 +9,12 @@ from django.views.decorators.http import require_POST
 from .budget import hourly_rates, project_budget_summary, refresh_budget_alert
 from .forms import LabelForm, ProjectForm
 from .models import Label, Project
-from .permissions import is_manager, manager_required
+from .permissions import is_manager, manager_required, visible_projects
 
 
 @login_required
 def project_list(request):
-    projects = Project.objects.annotate(
+    projects = visible_projects(Project.objects.all(), request.user).annotate(
         total=Count('tasks'),
         done=Count('tasks', filter=Q(tasks__status='Completed')),
         avg_progress=Avg('tasks__progress'),
@@ -37,6 +37,7 @@ def project_add(request):
             project = form.save(commit=False)
             project.created_by = request.user
             project.save()
+            form.save_m2m()
             messages.success(request, 'Project created.')
             return redirect('project_list')
     else:
@@ -71,6 +72,14 @@ def project_delete(request, pk):
             request,
             f'"{project.name}" has {expense_count} expense{"s" if expense_count != 1 else ""}. '
             'Delete them first if you really want to remove this project.',
+        )
+        return redirect('project_list')
+    # Private project delete karne se uske tasks project-less ho kar sabko dikhne lagte; isliye rok do
+    if project.is_private and project.tasks.exists():
+        messages.error(
+            request,
+            f'"{project.name}" is private and still has tasks. Make it public or move its tasks first, '
+            'otherwise they would become visible to everyone.',
         )
         return redirect('project_list')
     if request.method == 'POST':

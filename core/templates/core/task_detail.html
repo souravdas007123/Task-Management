@@ -160,6 +160,14 @@
                         <span class="muted">Not set</span>
                     {% endif %}
                 </dd>
+                {% if blocked_by %}
+                <dt>Blocked by</dt>
+                <dd>{% for other in blocked_by %}<div><a href="{% url 'task_detail' other.pk %}">#{{ other.pk }} {{ other.title|truncatechars:34 }}</a> {% if other.status == 'Completed' %}<span class="muted">(done)</span>{% else %}<span class="overdue-tag">Open</span>{% endif %}</div>{% endfor %}</dd>
+                {% endif %}
+                {% if blocking %}
+                <dt>Blocking</dt>
+                <dd>{% for other in blocking %}<div><a href="{% url 'task_detail' other.pk %}">#{{ other.pk }} {{ other.title|truncatechars:34 }}</a></div>{% endfor %}</dd>
+                {% endif %}
                 <dt>Repeats</dt>
                 <dd>{{ task.get_recurrence_display }}</dd>
                 {% if task.completed_at %}

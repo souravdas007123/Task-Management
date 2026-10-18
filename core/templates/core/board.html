@@ -109,6 +109,7 @@
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
             body: JSON.stringify({status: status})
         }).then(function (response) {
+            if (response.status === 409) { return response.json().then(function (data) { throw new Error(data.error || 'This task is blocked by another task.'); }); }
             if (!response.ok) { throw new Error(response.status === 403 ? 'You cannot change this task.' : 'Could not update the task.'); }
             return response.json();
         }).then(function () {

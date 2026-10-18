@@ -60,6 +60,16 @@
                 Budget
             </a>
             {% endif %}
+            <a href="{% url 'leave_list' %}" {% if url_name == 'leave_list' or url_name == 'leave_add' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11M10 21v-6h4v6"/></svg>
+                Leave
+            </a>
+            {% if user_is_manager %}
+            <a href="{% url 'audit_log' %}" {% if url_name == 'audit_log' %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6l1 2h3v15H5V6h3zM9 12h6M9 16h6"/></svg>
+                Audit log
+            </a>
+            {% endif %}
             <a href="{% url 'task_report' %}" {% if url_name == 'task_report' %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
                 Reports
@@ -83,6 +93,9 @@
                 <span class="user-name">{{ request.user.username }}</span>
                 <span class="user-role">{{ user_role|default:"member" }}</span>
             </span>
+            <a href="{% url 'password_change' %}" class="btn-icon" title="Change password" aria-label="Change password">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            </a>
             <form method="POST" action="{% url 'logout' %}">
                 {% csrf_token %}
                 <button type="submit" class="btn-icon" title="Log out" aria-label="Log out">

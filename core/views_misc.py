@@ -12,6 +12,7 @@ from django.views.decorators.http import require_POST
 
 from .filters import parse_int, scope_tasks, sort_tasks
 from .models import Notification, Project, Task
+from .permissions import visible_projects
 from .services import annotate_permissions
 
 BOARD_LIMIT = 300
@@ -41,7 +42,7 @@ def board(request):
         'truncated': total > BOARD_LIMIT,
         'board_limit': BOARD_LIMIT,
         'mine': request.GET.get('mine') == '1',
-        'projects': Project.objects.all(),
+        'projects': visible_projects(Project.objects.all(), request.user),
         'current_project_id': parse_int(request.GET.get('project')),
     })
 

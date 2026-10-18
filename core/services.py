@@ -1,10 +1,22 @@
 """Chhote helpers: activity log, notifications (in-app + email), status change, task snapshot/diff."""
+import re
 from decimal import Decimal
+
+from django.contrib.auth.models import User
 
 from django.core.mail import send_mail
 
 from .models import ActivityLog, Notification, Task
-from .permissions import can_edit_task
+from .permissions import can_edit_task, can_view_task
+
+
+class BlockedError(ValueError):
+    """Task complete nahi ho sakta kyunki uske blocker tasks abhi baaki hain."""
+
+
+def blocked_message(task):
+    ids = ', '.join(f'#{pk}' for pk in task.open_blockers().values_list('pk', flat=True)[:5])
+    return f'Finish the blocking tasks first: {ids}.'
 
 
 def display_name(user):
@@ -47,6 +59,28 @@ def notify_many(users, message, link='', actor=None, request=None):
         notify(user, message, link=link, actor=actor, request=request)
 
 
+MENTION_RE = re.compile(r'(?<![\w@.])@([\w.+-]+)')
+MAX_MENTIONS = 10
+
+
+def find_mentions(text, task):
+    """Comment mein @username likhe active users, jo is task ko dekh sakte hain (max 10)."""
+    names = []
+    for raw in MENTION_RE.findall(text or ''):
+        name = raw.rstrip('.+-')
+        if name and name.lower() not in [n.lower() for n in names]:
+            names.append(name)
+        if len(names) >= MAX_MENTIONS:
+            break
+    if not names:
+        return []
+    found = {}
+    for user in User.objects.filter(is_active=True):
+        if user.username.lower() in {n.lower() for n in names}:
+            found[user.pk] = user
+    return [user for user in found.values() if can_view_task(user, task)]
+
+
 # ---------- change tracking ----------
 
 TRACKED_FIELDS = [
@@ -61,6 +95,7 @@ TRACKED_FIELDS = [
     ('estimated_hours', 'Estimate'),
     ('recurrence', 'Repeat'),
     ('labels', 'Labels'),
+    ('blocked_by', 'Blocked by'),
     ('description', 'Description'),
 ]
 
@@ -79,6 +114,7 @@ def snapshot_task(task):
         'estimated_hours': f'{Decimal(task.estimated_hours).normalize():f}h' if task.estimated_hours is not None else '-',
         'recurrence': task.get_recurrence_display(),
         'labels': ', '.join(sorted(label.name for label in task.labels.all())) or '-',
+        'blocked_by': ', '.join(f'#{pk}' for pk in sorted(task.blocked_by.values_list('pk', flat=True))) or '-',
         'description': task.description,
     }
 
@@ -125,6 +161,8 @@ def change_status(task, new_status, actor, request=None):
     old_status = task.status
     if new_status == old_status:
         return old_status
+    if new_status == 'Completed' and task.open_blockers().exists():
+        raise BlockedError(blocked_message(task))
 
     task.status = new_status
     task.save(update_fields=['status'])
