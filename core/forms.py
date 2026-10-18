@@ -12,6 +12,18 @@ from .permissions import visible_projects, visible_tasks
 from .validators import ALLOWED_ATTACHMENT_EXTENSIONS, validate_file_size
 
 
+def validate_birth_date(value):
+    """Janam tithi: future nahi, 1900 ke baad, aur kam se kam 14 saal umar."""
+    if value is None:
+        return value
+    today = timezone.localdate()
+    if value > today or value.year < 1900:
+        raise forms.ValidationError('Enter a valid date of birth.')
+    if (today.year - value.year) - ((today.month, today.day) < (value.month, value.day)) < 14:
+        raise forms.ValidationError('An employee must be at least 14 years old.')
+    return value
+
+
 def _reaches(start, target_pk, limit=500):
     """True agar `start` se blocked_by chain chalte hue target_pk mil jaye (loop check)."""
     seen = set()
@@ -279,9 +291,10 @@ class EmployeeForm(forms.ModelForm):
         model = UserProfile
         fields = [
             'designation', 'department', 'employee_id', 'employment_type', 'joining_date', 'probation_end',
-            'reporting_manager', 'phone', 'emergency_name', 'emergency_phone',
+            'reporting_manager', 'date_of_birth', 'phone', 'emergency_name', 'emergency_phone',
         ]
         widgets = {
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'designation': forms.TextInput(attrs={'class': 'form-control'}),
             'department': forms.Select(attrs={'class': 'form-control'}),
             'employee_id': forms.TextInput(attrs={'class': 'form-control'}),
@@ -302,6 +315,9 @@ class EmployeeForm(forms.ModelForm):
         self.fields['reporting_manager'].queryset = managers
         self.fields['reporting_manager'].empty_label = 'Nobody'
         self.fields['department'].empty_label = 'No department'
+
+    def clean_date_of_birth(self):
+        return validate_birth_date(self.cleaned_data.get('date_of_birth'))
 
     def clean_employee_id(self):
         value = (self.cleaned_data.get('employee_id') or '').strip()
@@ -330,13 +346,17 @@ class MyContactForm(forms.ModelForm):
     """Employee khud sirf apna phone aur emergency contact badal sakta hai."""
     class Meta:
         model = UserProfile
-        fields = ['phone', 'emergency_name', 'emergency_phone']
+        fields = ['date_of_birth', 'phone', 'emergency_name', 'emergency_phone']
         widgets = {
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'phone': forms.TextInput(attrs={'class': 'form-control'}),
             'emergency_name': forms.TextInput(attrs={'class': 'form-control'}),
             'emergency_phone': forms.TextInput(attrs={'class': 'form-control'}),
         }
         labels = {'emergency_name': 'Emergency contact name', 'emergency_phone': 'Emergency contact phone'}
+
+    def clean_date_of_birth(self):
+        return validate_birth_date(self.cleaned_data.get('date_of_birth'))
 
 
 class SalaryStructureForm(forms.ModelForm):

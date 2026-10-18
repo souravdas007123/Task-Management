@@ -13,7 +13,7 @@ from django.views.decorators.http import require_POST
 
 from .attendance import DAY_LABELS, late_cutoff, month_data, work_start
 from .forms import AttendanceEditForm
-from .models import Attendance
+from .models import Attendance, AttendanceRequest
 from .permissions import hr_required, is_hr, is_manager
 from .views_hr import _month_key, _parse_month, _shift_month, month_label
 from .views_reports import _csv_safe
@@ -63,8 +63,10 @@ def attendance_me(request):
 @require_POST
 def check_in(request):
     now = timezone.now()
+    today = timezone.localdate(now)
+    wfh = AttendanceRequest.objects.filter(user=request.user, kind='wfh', date=today, status='approved').exists()
     _record, created = Attendance.objects.get_or_create(
-        user=request.user, date=timezone.localdate(now), defaults={'check_in': now},
+        user=request.user, date=today, defaults={'check_in': now, 'mode': 'wfh' if wfh else 'office'},
     )
     if created:
         messages.success(request, f'Checked in at {timezone.localtime(now):%H:%M}.')

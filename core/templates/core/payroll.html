@@ -32,7 +32,7 @@
     {% if slips %}
     <div class="table-wrap">
         <table class="data">
-            <thead><tr><th scope="col">Employee</th><th scope="col" class="num">Gross</th><th scope="col" class="num">Unpaid days</th><th scope="col" class="num">Deductions</th><th scope="col" class="num">Bonus</th><th scope="col" class="num">Net pay</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+            <thead><tr><th scope="col">Employee</th><th scope="col" class="num">Gross</th><th scope="col" class="num">Unpaid days</th><th scope="col" class="num">Deductions</th><th scope="col" class="num">Bonus</th><th scope="col" class="num">Reimb.</th><th scope="col" class="num">Net pay</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
             <tbody>
                 {% for s in slips %}
                 <tr>
@@ -41,6 +41,7 @@
                     <td class="num">{{ s.unpaid_days }}</td>
                     <td class="num">{{ currency }}{{ s.total_deductions|floatformat:"2g" }}</td>
                     <td class="num">{{ currency }}{{ s.bonus|floatformat:"2g" }}</td>
+                    <td class="num">{{ currency }}{{ s.reimbursement|floatformat:"2g" }}</td>
                     <td class="num"><strong class="{% if s.net < 0 %}overdue{% endif %}">{{ currency }}{{ s.net|floatformat:"2g" }}</strong></td>
                     <td><span class="pill"><span class="dot {% if s.status == 'published' %}c-completed{% else %}c-pending{% endif %}"></span>{{ s.get_status_display }}</span></td>
                     <td class="row-actions">

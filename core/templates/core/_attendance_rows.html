@@ -13,6 +13,7 @@
                     {% elif r.status == 'leave' %}<span class="pill"><span class="dot c-progress"></span>{{ r.label }}</span>
                     {% else %}<span class="muted">{{ r.label }}</span>{% endif %}
                     {% if r.late %}<span class="overdue-tag">Late</span>{% endif %}
+                    {% if r.record and r.record.mode == 'wfh' %}<span class="chip">WFH</span>{% endif %}
                 </td>
                 <td class="nowrap">{% if r.record %}{{ r.record.check_in|time:"H:i" }}{% else %}-{% endif %}</td>
                 <td class="nowrap">{% if r.record and r.record.check_out %}{{ r.record.check_out|time:"H:i" }}{% else %}-{% endif %}</td>

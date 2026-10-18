@@ -1,0 +1,64 @@
+{% extends 'core/base.html' %}
+{% block title %}Claims{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Claims</h1>
+        <p class="page-sub">Money you spent for work. Approved claims are added to your next payslip.{% if approved_unpaid %} {{ currency }}{{ approved_unpaid|floatformat:"2g" }} is approved and waiting for payroll.{% endif %}</p>
+    </div>
+    <div class="head-actions"><a href="{% url 'claim_add' %}" class="btn btn-primary">File a claim</a></div>
+</div>
+
+{% if to_review %}
+<section class="card">
+    <h2 class="card-title">Waiting for your review</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Employee</th><th scope="col">Claim</th><th scope="col" class="num">Amount</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        {% for c in to_review %}
+        <tr>
+            <td>{{ c.user.get_full_name|default:c.user.username }}</td>
+            <td>
+                <div class="task-title">{{ c.title }}</div>
+                <div class="task-meta"><span class="muted">{{ c.get_category_display }}, {{ c.incurred_on|date:"d M Y" }}</span>{% if c.receipt %} <a href="{{ c.receipt.url }}" target="_blank" rel="noopener">Receipt</a>{% endif %}{% if c.note %} <span class="muted">{{ c.note }}</span>{% endif %}</div>
+            </td>
+            <td class="num">{{ currency }}{{ c.amount|floatformat:"2g" }}</td>
+            <td class="row-actions">
+                <form method="POST" action="{% url 'claim_approve' c.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Approve</button></form>
+                <form method="POST" action="{% url 'claim_reject' c.pk %}" class="inline" onsubmit="var n = prompt('Reason for rejecting (optional)'); if (n === null) { return false; } this.note.value = n;">{% csrf_token %}<input type="hidden" name="note" value=""><button type="submit" class="btn btn-ghost btn-sm">Reject</button></form>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+</section>
+{% endif %}
+
+<section class="card">
+    <h2 class="card-title">My claims</h2>
+    {% if claims %}
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Date</th><th scope="col">Claim</th><th scope="col" class="num">Amount</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        {% for c in claims %}
+        <tr>
+            <td class="nowrap">{{ c.incurred_on|date:"d M Y" }}</td>
+            <td>
+                <div class="task-title">{{ c.title }}</div>
+                <div class="task-meta"><span class="muted">{{ c.get_category_display }}</span>{% if c.receipt %} <a href="{{ c.receipt.url }}" target="_blank" rel="noopener">Receipt</a>{% endif %}</div>
+                {% if c.review_note %}<div class="task-meta"><span class="{% if c.status == 'rejected' %}overdue{% else %}muted{% endif %}">{{ c.review_note }}</span></div>{% endif %}
+            </td>
+            <td class="num">{{ currency }}{{ c.amount|floatformat:"2g" }}</td>
+            <td><span class="pill"><span class="dot {% if c.status == 'approved' %}c-completed{% elif c.status == 'submitted' %}c-pending{% else %}p-high{% endif %}"></span>{% if c.is_paid %}Paid in payslip{% elif c.payslip_id %}In a draft payslip{% else %}{{ c.get_status_display }}{% endif %}</span></td>
+            <td class="row-actions">
+                {% if c.can_delete %}<form method="POST" action="{% url 'claim_delete' c.pk %}" class="inline" onsubmit="return confirm('Delete this claim?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}
+    <div class="empty"><p>You have not filed any claims.</p><a href="{% url 'claim_add' %}" class="btn btn-primary">File a claim</a></div>
+    {% endif %}
+</section>
+{% endblock %}

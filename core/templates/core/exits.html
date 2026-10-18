@@ -1,0 +1,54 @@
+{% extends 'core/base.html' %}
+{% block title %}Exits{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Resignations and exits</h1>
+        <p class="page-sub">Accept a resignation to confirm the last working day and start the offboarding checklist. Complete the exit on or after that day.</p>
+    </div>
+    <div class="head-actions"><a href="{% url 'hr_employees' %}" class="btn btn-ghost">HR</a></div>
+</div>
+<section class="card">
+    {% if rows %}
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Employee</th><th scope="col">Dates</th><th scope="col">Pending work</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+        <tr>
+            <td>{{ r.user.get_full_name|default:r.user.username }}{% if r.reason %}<div class="task-meta"><span class="muted">{{ r.reason }}</span></div>{% endif %}</td>
+            <td class="nowrap">Submitted {{ r.submitted_on|date:"d M" }}<div class="task-meta"><span class="muted">Proposed {{ r.proposed_last_day|date:"d M Y" }}</span></div>{% if r.last_working_day %}<div class="task-meta"><strong>Last day {{ r.last_working_day|date:"d M Y" }}</strong></div>{% endif %}</td>
+            <td>{{ r.assets }} asset{{ r.assets|pluralize }}<div class="task-meta"><span class="muted">{{ r.open_tasks }} open task{{ r.open_tasks|pluralize }}</span></div></td>
+            <td>{{ r.get_status_display }}</td>
+            <td>
+                {% if r.own %}
+                    <span class="muted">Another HR user decides on yours.</span>
+                {% elif r.status == 'pending' %}
+                <form method="POST" action="{% url 'exit_accept' r.pk %}" class="stack-form">
+                    {% csrf_token %}
+                    <input type="date" name="last_working_day" value="{{ r.proposed_last_day|date:'Y-m-d' }}" class="form-control" aria-label="Last working day">
+                    <input type="text" name="hr_note" maxlength="300" class="form-control" placeholder="Note (optional)" aria-label="Note">
+                    <button type="submit" class="btn btn-primary btn-sm">Accept</button>
+                </form>
+                <form method="POST" action="{% url 'exit_reject' r.pk %}" class="inline" onsubmit="var n = prompt('Reason (optional)'); if (n === null) { return false; } this.hr_note.value = n;">{% csrf_token %}<input type="hidden" name="hr_note" value=""><button type="submit" class="link-btn">Reject</button></form>
+                {% elif r.status == 'accepted' %}
+                <form method="POST" action="{% url 'exit_complete' r.pk %}" onsubmit="return confirm('Complete the exit? Their login will be disabled.');">{% csrf_token %}<button type="submit" class="btn {% if r.ready %}btn-primary{% else %}btn-ghost{% endif %} btn-sm">Complete exit</button></form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% else %}
+    <div class="empty"><p>No resignations in progress.</p></div>
+    {% endif %}
+</section>
+{% if recent %}
+<section class="card">
+    <h2 class="card-title">Earlier</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Employee</th><th scope="col">Submitted</th><th scope="col">Last day</th><th scope="col">Status</th></tr></thead>
+        <tbody>{% for h in recent %}<tr><td>{{ h.user.get_full_name|default:h.user.username }}</td><td>{{ h.submitted_on|date:"d M Y" }}</td><td>{% if h.last_working_day %}{{ h.last_working_day|date:"d M Y" }}{% else %}-{% endif %}</td><td>{{ h.get_status_display }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+</section>
+{% endif %}
+{% endblock %}

@@ -130,3 +130,12 @@ Without Docker: `pip install -r requirements-prod.txt`, set `DJANGO_DEBUG=False`
 - The sidebar is grouped into Work, Me, Office, Management and HR.
 
 Limits: uploaded documents and resumes are served by URL like the other uploads, so use a protected media setup if file secrecy matters. There is no calendar sync for room bookings, and expense claims are not yet paid out through payroll.
+
+## Claims, attendance requests, exits and celebrations
+
+- **Claims** (`/claims/`): an employee files money they spent for work (with a receipt). The reporting manager (or HR/admin) approves; nobody approves their own claim, except the admin role. When payroll is generated or recalculated, approved claims up to the end of that month go into the payslip as a tax-free "Reimbursements" line, and each claim is paid only once. Deleting a draft payslip frees its claims. A claim already in a payslip can no longer be rejected.
+- **Attendance requests** (`/attendance/requests/`): fix a missed check-in/out in the last 30 days (times required) or ask to work from home (today up to 30 days ahead). The reporting manager or HR approves; an approved fix creates or completes the attendance entry, and a day that already has a complete entry must be edited by HR. Work-from-home days are tagged "WFH" when the employee checks in.
+- **Resignation and exit** (`/resign/`, HR at `/hr/exits/`): the employee submits a resignation with a proposed last day and can withdraw it. HR accepts (confirming the last working day, which starts the offboarding checklist) or rejects it. HR cannot decide on their own resignation. "Complete exit" works on or after the last day, needs all assets returned, never disables the only active superuser, disables the login and records the exit date; no payslips are made for months after the exit month.
+- **Birthdays and anniversaries**: the dashboard lists the next 14 days. Date of birth is set by HR or by the employee on My profile; only the day and month are shown. A 29 Feb birthday is shown on 28 Feb in other years.
+
+Limits: no pro-rata salary for the exit month (the full month is paid unless HR adjusts it), no final settlement or notice-period recovery, and claims are not split across several payslips.

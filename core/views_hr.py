@@ -176,7 +176,7 @@ def payslip_detail(request, pk):
     profile = getattr(payslip.user, 'profile', None)
     return render(request, 'core/payslip_detail.html', {
         'payslip': payslip, 'profile': profile, 'period': month_label(payslip.year, payslip.month),
-        'hr': is_hr(request.user),
+        'hr': is_hr(request.user), 'claims': payslip.claims.all(),
     })
 
 
@@ -411,13 +411,13 @@ def payroll_export(request):
     response.write('﻿')
     writer = csv.writer(response)
     writer.writerow(['Employee', 'Employee ID', 'Month', 'Status', 'Basic', 'HRA', 'Allowances', 'Gross', 'PF', 'Tax',
-                     'Other deduction', 'Unpaid days', 'Leave deduction', 'Bonus', 'Extra deduction', 'Net pay'])
+                     'Other deduction', 'Unpaid days', 'Leave deduction', 'Bonus', 'Reimbursement', 'Extra deduction', 'Net pay'])
     for s in Payslip.objects.filter(year=year, month=month).select_related('user', 'user__profile'):
         profile = getattr(s.user, 'profile', None)
         writer.writerow([
             _csv_safe(_name(s.user)), _csv_safe(profile.employee_id if profile and profile.employee_id else ''),
             _month_key(year, month), s.get_status_display(), s.basic, s.hra, s.allowances, s.gross, s.pf, s.tax,
-            s.other_deduction, s.unpaid_days, s.leave_deduction, s.bonus, s.extra_deduction, s.net,
+            s.other_deduction, s.unpaid_days, s.leave_deduction, s.bonus, s.reimbursement, s.extra_deduction, s.net,
         ])
     return response
 

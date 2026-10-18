@@ -3,7 +3,7 @@ from django.urls import path, reverse_lazy
 
 from . import (
     views, views_api, views_attendance, views_budget, views_company, views_facilities, views_hr, views_misc,
-    views_office, views_projects, views_reports, views_talent, views_work, views_workplace,
+    views_office, views_projects, views_reports, views_requests, views_talent, views_work, views_workplace,
 )
 
 urlpatterns = [
@@ -142,6 +142,25 @@ urlpatterns = [
     path('hr/cycles/<int:pk>/generate/', views_talent.cycle_generate, name='cycle_generate'),
     path('hr/cycles/<int:pk>/toggle/', views_talent.cycle_toggle, name='cycle_toggle'),
     path('hr/cycles/<int:pk>/delete/', views_talent.cycle_delete, name='cycle_delete'),
+    # Claims (reimbursement)
+    path('claims/', views_requests.claim_list, name='claim_list'),
+    path('claims/add/', views_requests.claim_add, name='claim_add'),
+    path('claims/<int:pk>/approve/', views_requests.claim_approve, name='claim_approve'),
+    path('claims/<int:pk>/reject/', views_requests.claim_reject, name='claim_reject'),
+    path('claims/<int:pk>/delete/', views_requests.claim_delete, name='claim_delete'),
+    # Attendance requests (regularize / WFH)
+    path('attendance/requests/', views_requests.request_list, name='request_list'),
+    path('attendance/requests/add/', views_requests.request_add, name='request_add'),
+    path('attendance/requests/<int:pk>/approve/', views_requests.request_approve, name='request_approve'),
+    path('attendance/requests/<int:pk>/reject/', views_requests.request_reject, name='request_reject'),
+    path('attendance/requests/<int:pk>/cancel/', views_requests.request_cancel, name='request_cancel'),
+    # Resignation and exit
+    path('resign/', views_requests.resign, name='resign'),
+    path('resign/withdraw/', views_requests.resign_withdraw, name='resign_withdraw'),
+    path('hr/exits/', views_requests.exit_list, name='exit_list'),
+    path('hr/exits/<int:pk>/accept/', views_requests.exit_decide, {'decision': 'accepted'}, name='exit_accept'),
+    path('hr/exits/<int:pk>/reject/', views_requests.exit_decide, {'decision': 'rejected'}, name='exit_reject'),
+    path('hr/exits/<int:pk>/complete/', views_requests.exit_complete, name='exit_complete'),
     # People, holidays, payslips (sabke liye)
     path('people/', views_hr.people, name='people'),
     path('people/org/', views_hr.org_chart, name='org_chart'),

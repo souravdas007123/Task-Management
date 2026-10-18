@@ -8,6 +8,8 @@
     </div>
     <div class="head-actions">
         <a href="{% url 'my_payslips' %}" class="btn btn-ghost">My payslips{% if payslip_count %} ({{ payslip_count }}){% endif %}</a>
+        <a href="{% url 'claim_list' %}" class="btn btn-ghost">Claims</a>
+        <a href="{% url 'resign' %}" class="btn btn-ghost">Resignation</a>
         <a href="{% url 'leave_add' %}" class="btn btn-primary">Request leave</a>
     </div>
 </div>

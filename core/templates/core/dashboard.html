@@ -22,6 +22,20 @@
 </section>
 {% endif %}
 
+{% if celebrations %}
+<section class="card" aria-labelledby="celebrate-title">
+    <h2 class="card-title" id="celebrate-title">Birthdays and anniversaries</h2>
+    <ul class="plain-list">
+        {% for e in celebrations %}
+        <li>
+            <span>{% if e.kind == 'birthday' %}Birthday{% else %}{{ e.years }} year{{ e.years|pluralize }} at the company{% endif %}: <strong>{{ e.user.get_full_name|default:e.user.username }}</strong></span>
+            <span class="muted">{% if e.days_away == 0 %}Today{% elif e.days_away == 1 %}Tomorrow{% else %}{{ e.date|date:"d M" }}{% endif %}</span>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
 {% if announcements %}
 <section class="card" aria-labelledby="news-title">
     <div class="card-title-row"><h2 class="card-title" id="news-title">Announcements</h2><a href="{% url 'announcement_list' %}" class="btn btn-ghost btn-sm">See all</a></div>

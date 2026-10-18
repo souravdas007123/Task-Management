@@ -12,6 +12,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .budget import refresh_budget_alert
+from .celebrations import upcoming
 from .filters import SORT_CHOICES, filter_tasks, parse_int, scope_tasks, sort_tasks
 from .forms import AttachmentForm, ChecklistItemForm, CommentForm, TaskForm, TimeEntryForm
 from .models import (
@@ -110,6 +111,7 @@ def dashboard(request):
         Q(expires_on__isnull=True) | Q(expires_on__gte=timezone.localdate())
     )[:3])
     context['todo_items'] = office_todos(request.user)
+    context['celebrations'] = upcoming(timezone.localdate())[:8]
     return render(request, 'core/dashboard.html', context)
 
 

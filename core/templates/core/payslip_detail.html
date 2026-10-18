@@ -46,6 +46,18 @@
         </div>
     </div>
 
+    {% if payslip.reimbursement %}
+    <div class="two-col">
+        <div>
+            <h3 class="sub-title">Reimbursements (not taxed)</h3>
+            <ul class="plain-list">
+                {% for c in claims %}<li><span>{{ c.title }} <span class="muted">{{ c.incurred_on|date:"d M" }}</span></span><strong>{{ currency }}{{ c.amount|floatformat:"2g" }}</strong></li>{% endfor %}
+                <li><span><strong>Total</strong></span><strong>{{ currency }}{{ payslip.reimbursement|floatformat:"2g" }}</strong></li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="payslip-net"><span>Net pay</span><strong>{{ currency }}{{ payslip.net|floatformat:"2g" }}</strong></div>
     {% if payslip.adjustment_note %}<p class="help">Note: {{ payslip.adjustment_note }}</p>{% endif %}
 </section>

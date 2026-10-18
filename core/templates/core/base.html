@@ -56,7 +56,7 @@
                 Projects
             </a>
             <div class="nav-section">Me</div>
-            <a href="{% url 'attendance_me' %}" {% if url_name in "attendance_me attendance_team attendance_person attendance_edit" %}aria-current="page"{% endif %}>
+            <a href="{% url 'attendance_me' %}" {% if url_name in "attendance_me attendance_team attendance_person attendance_edit request_list request_add" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3.5 2"/></svg>
                 Attendance
             </a>
@@ -71,6 +71,10 @@
             <a href="{% url 'review_home' %}" {% if url_name in "review_home review_detail cycle_add cycle_detail" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>
                 Reviews
+            </a>
+            <a href="{% url 'claim_list' %}" {% if url_name in "claim_list claim_add" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h3"/></svg>
+                Claims
             </a>
             <a href="{% url 'expense_list' %}" {% if url_name in "expense_list expense_add" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zM12 10a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>
@@ -125,6 +129,10 @@
             <a href="{% url 'job_list' %}" {% if url_name in "job_list job_add job_detail job_edit job_delete candidate_add candidate_edit" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v12H4zM9 7V5h6v2M4 12h16"/></svg>
                 Recruitment
+            </a>
+            <a href="{% url 'exit_list' %}" {% if url_name in "exit_list" %}aria-current="page"{% endif %}>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                Exits
             </a>
             <a href="{% url 'asset_list' %}" {% if url_name in "asset_list asset_add asset_detail asset_edit" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v10H4zM2 19h20M9 15v4M15 15v4"/></svg>

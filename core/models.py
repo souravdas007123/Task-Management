@@ -79,6 +79,9 @@ class UserProfile(models.Model):
     phone = models.CharField(max_length=30, blank=True, validators=[PHONE_VALIDATOR])
     emergency_name = models.CharField(max_length=100, blank=True)
     emergency_phone = models.CharField(max_length=30, blank=True, validators=[PHONE_VALIDATOR])
+    date_of_birth = models.DateField(null=True, blank=True)
+    # Exit complete hone par HR bharta hai; uske baad ke mahino ki payslip nahi banti
+    exit_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return f'{self.user.username} ({self.get_role_display()})'
@@ -543,6 +546,8 @@ class Payslip(models.Model):
     # HR ke haath se: bonus aur extra katauti
     bonus = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     extra_deduction = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    # Approved personal claims jo is slip mein de di gayi (tax-free, gross mein nahi ginti)
+    reimbursement = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     adjustment_note = models.CharField(max_length=200, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
     generated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
@@ -566,7 +571,7 @@ class Payslip(models.Model):
 
     @property
     def net(self):
-        return self.gross + self.bonus - self.total_deductions
+        return self.gross + self.bonus + self.reimbursement - self.total_deductions
 
     @property
     def period(self):
@@ -580,6 +585,8 @@ class Attendance(models.Model):
     check_in = models.DateTimeField()
     check_out = models.DateTimeField(null=True, blank=True)
     note = models.CharField(max_length=200, blank=True)
+    MODE_CHOICES = [('office', 'Office'), ('wfh', 'Work from home')]
+    mode = models.CharField(max_length=6, choices=MODE_CHOICES, default='office')
     edited_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
 
     class Meta:
@@ -936,3 +943,100 @@ class Review(models.Model):
     @property
     def is_complete(self):
         return self.manager_submitted_at is not None
+
+
+# ---------------------------------------------------------------- reimbursement, attendance requests, exit
+
+class Claim(models.Model):
+    """Employee ka apna kharcha (cab, internet, client lunch). Approve hone par payslip mein wapas milta hai."""
+    CATEGORY_CHOICES = [
+        ('travel', 'Travel'), ('food', 'Food and meals'), ('internet', 'Phone and internet'),
+        ('supplies', 'Office supplies'), ('training', 'Training'), ('other', 'Other'),
+    ]
+    STATUS_CHOICES = [('submitted', 'Waiting for review'), ('approved', 'Approved'), ('rejected', 'Rejected')]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='claims')
+    title = models.CharField(max_length=150)
+    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, default='travel')
+    amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    incurred_on = models.DateField(default=timezone.localdate)
+    note = models.CharField(max_length=300, blank=True)
+    receipt = models.FileField(
+        upload_to='claims/', blank=True,
+        validators=[FileExtensionValidator(ALLOWED_RECEIPT_EXTENSIONS), validate_file_size],
+    )
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='submitted')
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.CharField(max_length=300, blank=True)
+    # SET_NULL: draft payslip delete ho to claim dobara "unpaid" ho jata hai
+    payslip = models.ForeignKey(Payslip, on_delete=models.SET_NULL, null=True, blank=True, related_name='claims')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-incurred_on', '-id']
+
+    def __str__(self):
+        return f'{self.title} ({self.amount})'
+
+    @property
+    def is_paid(self):
+        return self.payslip_id is not None and self.payslip.status == 'published'
+
+
+class AttendanceRequest(models.Model):
+    KIND_CHOICES = [('regularize', 'Fix a missed check-in/out'), ('wfh', 'Work from home')]
+    STATUS_CHOICES = [
+        ('pending', 'Waiting for review'), ('approved', 'Approved'), ('rejected', 'Rejected'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='attendance_requests')
+    kind = models.CharField(max_length=10, choices=KIND_CHOICES, default='regularize')
+    date = models.DateField()
+    check_in_time = models.TimeField(null=True, blank=True)
+    check_out_time = models.TimeField(null=True, blank=True)
+    reason = models.CharField(max_length=300)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-id']
+
+    def __str__(self):
+        return f'{self.user_id} {self.kind} {self.date}'
+
+
+class Resignation(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Waiting for HR'), ('accepted', 'Accepted'), ('rejected', 'Rejected'),
+        ('withdrawn', 'Withdrawn'), ('completed', 'Exit completed'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='resignations')
+    submitted_on = models.DateField(default=timezone.localdate)
+    proposed_last_day = models.DateField()
+    last_working_day = models.DateField(null=True, blank=True)
+    reason = models.CharField(max_length=500, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    hr_note = models.CharField(max_length=300, blank=True)
+    decided_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    decided_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+        constraints = [
+            # Ek employee ki ek hi chalti hui resignation
+            models.UniqueConstraint(
+                fields=['user'], condition=models.Q(status__in=['pending', 'accepted']),
+                name='one_active_resignation_per_user',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.user_id} {self.status}'
+
+    @property
+    def is_active(self):
+        return self.status in ('pending', 'accepted')

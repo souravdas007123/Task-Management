@@ -1,0 +1,47 @@
+{% extends 'core/base.html' %}
+{% block title %}Resignation{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Resignation</h1>
+        <p class="page-sub">Submit your resignation here. HR confirms your last working day and starts the exit checklist.</p>
+    </div>
+    <div class="head-actions"><a href="{% url 'my_profile' %}" class="btn btn-ghost">My profile</a></div>
+</div>
+
+{% if current %}
+<section class="card">
+    <h2 class="card-title">{{ current.get_status_display }}</h2>
+    <dl class="facts">
+        <dt>Submitted</dt><dd>{{ current.submitted_on|date:"d M Y" }}</dd>
+        <dt>You proposed</dt><dd>{{ current.proposed_last_day|date:"d M Y" }}</dd>
+        {% if current.last_working_day %}<dt>Last working day</dt><dd><strong>{{ current.last_working_day|date:"d M Y" }}</strong></dd>{% endif %}
+        {% if current.reason %}<dt>Reason</dt><dd>{{ current.reason }}</dd>{% endif %}
+        {% if current.hr_note %}<dt>HR note</dt><dd>{{ current.hr_note }}</dd>{% endif %}
+    </dl>
+    {% if current.status == 'accepted' %}<p class="muted">Your offboarding checklist is listed on My profile. Please return company assets before your last day.</p>{% endif %}
+    <form method="POST" action="{% url 'resign_withdraw' %}" onsubmit="return confirm('Withdraw your resignation?');">{% csrf_token %}<button type="submit" class="btn btn-ghost">Withdraw resignation</button></form>
+</section>
+{% else %}
+<section class="card form-card">
+    <form method="POST" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="form-error-box" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+        {% for field in form %}
+        <div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}{{ field.errors }}</div>
+        {% endfor %}
+        <div class="form-actions"><button type="submit" class="btn btn-danger">Submit resignation</button></div>
+    </form>
+</section>
+{% endif %}
+
+{% if history %}
+<section class="card">
+    <h2 class="card-title">History</h2>
+    <div class="table-wrap"><table class="data">
+        <thead><tr><th scope="col">Submitted</th><th scope="col">Last day</th><th scope="col">Status</th></tr></thead>
+        <tbody>{% for h in history %}<tr><td>{{ h.submitted_on|date:"d M Y" }}</td><td>{% if h.last_working_day %}{{ h.last_working_day|date:"d M Y" }}{% else %}{{ h.proposed_last_day|date:"d M Y" }}{% endif %}</td><td>{{ h.get_status_display }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+</section>
+{% endif %}
+{% endblock %}

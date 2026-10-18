@@ -8,6 +8,7 @@
     </div>
     <div class="head-actions">
         {% if can_view_team %}<a href="{% url 'attendance_team' %}" class="btn btn-ghost">Team attendance</a>{% endif %}
+        <a href="{% url 'request_list' %}" class="btn btn-ghost">Requests (fix / WFH)</a>
         <a href="{% url 'leave_add' %}" class="btn btn-ghost">Request leave</a>
     </div>
 </div>
@@ -16,7 +17,7 @@
     <div>
         <h2 class="card-title" id="today-title">Today, {{ now|date:"l, d M" }}</h2>
         {% if record %}
-        <p class="muted">Checked in at <strong>{{ record.check_in|time:"H:i" }}</strong>{% if record.check_out %}, checked out at <strong>{{ record.check_out|time:"H:i" }}</strong> ({{ record.hours|floatformat:1 }} hours).{% else %}. Don't forget to check out.{% endif %}</p>
+        <p class="muted">{% if record.mode == 'wfh' %}<span class="chip">Work from home</span> {% endif %}Checked in at <strong>{{ record.check_in|time:"H:i" }}</strong>{% if record.check_out %}, checked out at <strong>{{ record.check_out|time:"H:i" }}</strong> ({{ record.hours|floatformat:1 }} hours).{% else %}. Don't forget to check out.{% endif %}</p>
         {% else %}
         <p class="muted">You have not checked in yet.</p>
         {% endif %}

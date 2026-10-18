@@ -6,7 +6,8 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 from .models import (
-    Candidate, CompanyDocument, JobOpening, Review, ReviewCycle, Room, Ticket, TicketComment, Visitor,
+    AttendanceRequest, Candidate, Claim, CompanyDocument, JobOpening, Resignation, Review, ReviewCycle, Room, Ticket,
+    TicketComment, Visitor,
 )
 
 TEXT = {'class': 'form-control'}
@@ -273,3 +274,129 @@ class ManagerReviewForm(forms.ModelForm):
         if not value:
             raise forms.ValidationError('Write some feedback.')
         return value
+
+
+# ---------------------------------------------------------------- claims, attendance requests, resignation
+
+class ClaimForm(forms.ModelForm):
+    MAX_AGE_DAYS = 365
+
+    class Meta:
+        model = Claim
+        fields = ['title', 'category', 'amount', 'incurred_on', 'note', 'receipt']
+        widgets = {
+            'title': forms.TextInput(attrs={**TEXT, 'placeholder': 'e.g. Cab to client site'}),
+            'category': forms.Select(attrs=TEXT),
+            'amount': forms.NumberInput(attrs={'class': 'form-control', 'min': '0.01', 'step': '0.01'}),
+            'incurred_on': date_widget(),
+            'note': forms.TextInput(attrs=TEXT),
+        }
+        labels = {'incurred_on': 'Spent on'}
+        help_texts = {'receipt': 'PDF or image up to 10 MB. Attach it if you have one.'}
+
+    def clean_title(self):
+        value = self.cleaned_data['title'].strip()
+        if not value:
+            raise forms.ValidationError('Enter what the money was spent on.')
+        return value
+
+    def clean_incurred_on(self):
+        value = self.cleaned_data['incurred_on']
+        today = timezone.localdate()
+        if value > today:
+            raise forms.ValidationError('The date cannot be in the future.')
+        if (today - value).days > self.MAX_AGE_DAYS:
+            raise forms.ValidationError('Claims older than a year cannot be filed.')
+        return value
+
+
+class AttendanceRequestForm(forms.ModelForm):
+    WINDOW_DAYS = 30
+
+    class Meta:
+        model = AttendanceRequest
+        fields = ['kind', 'date', 'check_in_time', 'check_out_time', 'reason']
+        widgets = {
+            'kind': forms.Select(attrs=TEXT),
+            'date': date_widget(),
+            'check_in_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'check_out_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'reason': forms.TextInput(attrs=TEXT),
+        }
+        labels = {'check_in_time': 'Check-in time', 'check_out_time': 'Check-out time'}
+        help_texts = {'check_in_time': 'Only for fixing a missed check-in/out.'}
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def clean_reason(self):
+        value = self.cleaned_data['reason'].strip()
+        if not value:
+            raise forms.ValidationError('Give a short reason.')
+        return value
+
+    def clean(self):
+        data = super().clean()
+        kind, day = data.get('kind'), data.get('date')
+        if not kind or not day:
+            return data
+        today = timezone.localdate()
+        window = datetime.timedelta(days=self.WINDOW_DAYS)
+        if kind == 'regularize':
+            if day > today:
+                self.add_error('date', 'You can only fix a day that has already started.')
+            elif today - day > window:
+                self.add_error('date', f'Only the last {self.WINDOW_DAYS} days can be fixed.')
+            start, end = data.get('check_in_time'), data.get('check_out_time')
+            if start is None:
+                self.add_error('check_in_time', 'Enter the time you arrived.')
+            if end is None:
+                self.add_error('check_out_time', 'Enter the time you left.')
+            if start and end and end <= start:
+                self.add_error('check_out_time', 'The check-out must be after the check-in.')
+            elif end and day == today and end > timezone.localtime().time():
+                self.add_error('check_out_time', 'That time has not come yet.')
+        else:
+            if day < today:
+                self.add_error('date', 'Work from home must be for today or a later day.')
+            elif day - today > window:
+                self.add_error('date', f'Work from home can be requested up to {self.WINDOW_DAYS} days ahead.')
+            data['check_in_time'] = data['check_out_time'] = None
+        if self.user is not None and not self.errors:
+            clash = AttendanceRequest.objects.filter(
+                user=self.user, kind=kind, date=day, status__in=('pending', 'approved'),
+            ).exists()
+            if clash:
+                self.add_error('date', 'You already have a request for this day.')
+        return data
+
+    def save(self, commit=True):
+        item = super().save(commit=False)
+        if item.kind == 'wfh':
+            item.check_in_time = item.check_out_time = None
+        if commit:
+            item.save()
+        return item
+
+
+class ResignationForm(forms.ModelForm):
+    class Meta:
+        model = Resignation
+        fields = ['proposed_last_day', 'reason']
+        widgets = {'proposed_last_day': date_widget(), 'reason': forms.TextInput(attrs=TEXT)}
+        labels = {'proposed_last_day': 'Proposed last working day'}
+        help_texts = {'proposed_last_day': 'HR confirms the final date based on your notice period.'}
+
+    def clean_proposed_last_day(self):
+        value = self.cleaned_data['proposed_last_day']
+        if value < timezone.localdate():
+            raise forms.ValidationError('The last day cannot be in the past.')
+        if value > timezone.localdate() + datetime.timedelta(days=366):
+            raise forms.ValidationError('Choose a date within a year.')
+        return value
+
+
+class ResignationDecisionForm(forms.Form):
+    last_working_day = forms.DateField(required=False, widget=date_widget())
+    hr_note = forms.CharField(required=False, max_length=300, widget=forms.TextInput(attrs=TEXT))
