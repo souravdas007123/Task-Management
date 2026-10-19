@@ -51,10 +51,12 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h10M7 12h14M3 18h8"/></svg>
                 Timeline
             </a>
+            {% if user_is_manager %}
             <a href="{% url 'workload' %}" {% if url_name in "workload" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2"/></svg>
                 Workload
             </a>
+            {% endif %}
             <a href="{% url 'project_list' %}" {% if url_name in "project_list project_add project_edit project_delete label_list" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
                 Projects

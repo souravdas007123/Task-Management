@@ -496,9 +496,9 @@ class PurchaseForm(forms.ModelForm):
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        from .permissions import visible_projects
+        from .permissions import selectable_projects
         projects = Project.objects.all()
-        self.fields['project'].queryset = visible_projects(projects, user) if user is not None else projects
+        self.fields['project'].queryset = selectable_projects(projects, user) if user is not None else projects
         self.fields['project'].empty_label = 'No project'
         self.fields['vendor'].queryset = Vendor.objects.filter(is_active=True)
         self.fields['vendor'].empty_label = 'Any vendor'

@@ -235,7 +235,7 @@ class WorkloadTests(Base):
         self.assertEqual(row['level'], 'high')
 
     def test_pages_render(self):
-        self.login(self.owner)
+        self.login(self.manager)
         self.task(title='x', due_date=self.today, start_date=self.today - datetime.timedelta(days=3))
         self.assertEqual(self.client.get(reverse('workload')).status_code, 200)
         r = self.client.get(reverse('timeline'))

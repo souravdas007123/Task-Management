@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from .filters import parse_int, scope_tasks
 from .models import Project, Task
-from .permissions import visible_projects
+from .permissions import manager_required, visible_projects
 from .views_office import away_user_ids
 from .workload import (
     DUE_SOON_DAYS, HIGH_LOAD, TIMELINE_WEEKS, build_timeline, build_workload, week_start,
@@ -19,6 +19,7 @@ SHIFT_WEEKS = 4
 
 
 @login_required
+@manager_required
 def workload(request):
     today = timezone.localdate()
     rows = build_workload(today)

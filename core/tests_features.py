@@ -32,6 +32,12 @@ def tearDownModule():
     PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'],  # tests tez chalein
 )
 class Base(TestCase):
+    def shared(self, **kw):
+        """Task jo ek project mein hai jiske owner aur other dono member hain, par assign/banaya sirf owner ne."""
+        project = Project.objects.create(name='Shared')
+        project.members.add(self.owner, self.other)
+        return self.task(project=project, **kw)
+
     def setUp(self):
         self.owner = User.objects.create_user('owner', 'owner@example.com', 'pass12345')
         self.other = User.objects.create_user('other', 'other@example.com', 'pass12345')
@@ -166,7 +172,7 @@ class PermissionTests(Base):
         self.assertFalse(can_delete_task(self.other, assigned_only))
 
     def test_member_cannot_edit_or_delete_others_task(self):
-        task = self.task()
+        task = self.shared()
         self.login(self.other)
         self.assertEqual(self.client.get(reverse('update_task', args=[task.pk])).status_code, 403)
         self.assertEqual(self.client.post(reverse('update_task', args=[task.pk]), {'title': 'x'}).status_code, 403)
@@ -175,7 +181,7 @@ class PermissionTests(Base):
         self.assertTrue(Task.objects.filter(pk=task.pk).exists())
 
     def test_member_cannot_modify_details_of_others_task(self):
-        task = self.task()
+        task = self.shared()
         item = ChecklistItem.objects.create(task=task, text='x')
         self.login(self.other)
         self.assertEqual(self.client.post(reverse('add_checklist_item', args=[task.pk]), {'text': 'y'}).status_code, 403)
@@ -186,7 +192,7 @@ class PermissionTests(Base):
         self.assertEqual(self.client.post(reverse('add_attachment', args=[task.pk]), {'file': f}).status_code, 403)
 
     def test_anyone_logged_in_can_comment(self):
-        task = self.task()
+        task = self.shared()
         self.login(self.other)
         self.client.post(reverse('add_comment', args=[task.pk]), {'body': 'Looks good'})
         self.assertEqual(task.comments.count(), 1)
@@ -209,7 +215,7 @@ class PermissionTests(Base):
         self.assertTrue(Project.objects.filter(pk=project.pk).exists())
 
     def test_403_page_is_themed(self):
-        task = self.task()
+        task = self.shared()
         self.login(self.other)
         response = self.client.get(reverse('update_task', args=[task.pk]))
         self.assertContains(response, 'Access denied', status_code=403)
@@ -841,7 +847,7 @@ class ApiTests(Base):
         self.assertEqual(self.client.get(reverse('api_task_status', args=[task.pk])).status_code, 405)
 
     def test_status_requires_edit_permission(self):
-        task = self.task()
+        task = self.shared()
         self.login(self.other)
         response = self.post_status(task, {'status': 'Completed'})
         self.assertEqual(response.status_code, 403)

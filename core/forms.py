@@ -8,7 +8,7 @@ from .models import (
     Project, SalaryStructure, Task, TimeEntry, UserProfile,
 )
 from .hr import check_leave_request
-from .permissions import visible_projects, visible_tasks
+from .permissions import selectable_projects, visible_tasks
 from .validators import ALLOWED_ATTACHMENT_EXTENSIONS, validate_file_size
 
 
@@ -86,7 +86,7 @@ class TaskForm(forms.ModelForm):
         projects = Project.objects.all()
         blockers = Task.objects.exclude(status='Completed')
         if user is not None:
-            projects = visible_projects(projects, user)
+            projects = selectable_projects(projects, user)
             blockers = visible_tasks(blockers, user)
         if self.instance.pk:
             if self.instance.project_id:

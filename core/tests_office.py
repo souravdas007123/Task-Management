@@ -194,7 +194,7 @@ class DependencyTests(OfficeBase):
 
 class MentionTests(OfficeBase):
     def test_find_mentions(self):
-        t = self.task()
+        t = self.shared()
         text = 'hey @other, and @OWNER. also @nobody and me@example.com'
         names = sorted(u.username for u in find_mentions(text, t))
         self.assertEqual(names, ['other', 'owner'])
@@ -205,7 +205,7 @@ class MentionTests(OfficeBase):
         self.assertEqual(find_mentions('@other @outsider', self.hidden), [])
 
     def test_comment_notifies_mentioned_once(self):
-        t = self.task(assigned_to=self.owner, created_by=self.owner)
+        t = self.shared(assigned_to=self.owner, created_by=self.owner)
         self.login(self.other)
         self.client.post(reverse('add_comment', args=[t.pk]), {'body': 'please look @owner'})
         msgs = list(Notification.objects.filter(user=self.owner).values_list('message', flat=True))
@@ -213,7 +213,7 @@ class MentionTests(OfficeBase):
         self.assertIn('mentioned you', msgs[0])
 
     def test_unrelated_mention_and_normal_comment(self):
-        t = self.task(assigned_to=self.owner, created_by=self.owner)
+        t = self.shared(assigned_to=self.owner, created_by=self.owner)
         self.login(self.other)
         self.client.post(reverse('add_comment', args=[t.pk]), {'body': 'cc @boss'})
         self.assertTrue(Notification.objects.filter(user=self.manager, message__contains='mentioned').exists())

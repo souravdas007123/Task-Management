@@ -158,3 +158,7 @@ Limits: older uploads (task attachments, claim receipts, candidate resumes, comp
   - `DJANGO_SIGNUP_DOMAINS`: comma-separated allowed email domains (empty = any).
   - `DJANGO_SIGNUP_MAX_PER_HOUR`: sign ups per IP per hour (default 5). Uses the Django cache.
 - Run `python manage.py migrate` (migration 0016).
+
+## What an employee can see
+
+Employees see only their own data: tasks assigned to them, created by them or in a project they are a member of; their own leave, claims, expenses, advances, tickets, payslips and documents. Team pages (workload, team attendance, budget, payroll, audit log, HR pages) are for managers, HR and admin only. The staff directory (name, post, department) stays visible to everyone.

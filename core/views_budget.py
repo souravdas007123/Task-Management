@@ -25,7 +25,7 @@ from .budget import (
 from .filters import parse_int
 from .forms import ExpenseForm
 from .models import Expense, Project, Task
-from .permissions import is_manager, manager_required, visible_projects, visible_tasks
+from .permissions import is_manager, manager_required, selectable_projects, visible_projects, visible_tasks
 from .services import display_name, log_activity, notify, notify_many
 from .views_reports import _csv_safe
 
@@ -135,7 +135,7 @@ def expense_list(request):
 
 def _limit_choices(form, user):
     """Private projects aur unke tasks expense form ke dropdown mein sirf unhe dikhein jinhe access hai."""
-    form.fields['project'].queryset = visible_projects(Project.objects.all(), user)
+    form.fields['project'].queryset = selectable_projects(Project.objects.all(), user)
     form.fields['task'].queryset = visible_tasks(Task.objects.order_by('-created_at'), user)
 
 

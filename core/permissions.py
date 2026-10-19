@@ -11,7 +11,7 @@ from functools import wraps
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 
-from .models import Project
+from .models import Project, Task
 
 
 def role_of(user):
@@ -33,36 +33,34 @@ def is_hr(user):
 
 
 def visible_tasks(queryset, user):
-    """Private project ke tasks sirf members/managers/assignee/creator ko; baaki sab ko sab dikhta hai."""
+    """Manager/admin ko sab tasks. Employee ko sirf apne (assign/banaye) tasks aur apne project ke tasks."""
     if is_manager(user):
         return queryset
-    # Subquery use kiya hai (join nahi) taaki rows duplicate na hon aur counts sahi rahein
     member_projects = Project.objects.filter(members=user).values('pk')
-    return queryset.filter(
-        Q(project__isnull=True)
-        | Q(project__is_private=False)
-        | Q(project_id__in=member_projects)
-        | Q(assigned_to=user)
-        | Q(created_by=user)
-    )
+    return queryset.filter(Q(assigned_to=user) | Q(created_by=user) | Q(project_id__in=member_projects))
 
 
 def visible_projects(queryset, user):
+    """Manager/admin ko sab projects. Employee ko sirf wo jinka wo member hai ya jisme uske tasks hain."""
     if is_manager(user):
         return queryset
-    member_projects = Project.objects.filter(members=user).values('pk')
-    return queryset.filter(Q(is_private=False) | Q(pk__in=member_projects))
+    own = Task.objects.filter(Q(assigned_to=user) | Q(created_by=user), project__isnull=False).values('project')
+    return queryset.filter(Q(members=user) | Q(pk__in=own)).distinct()
+
+
+def selectable_projects(queryset, user):
+    """Form ke dropdown ke liye: expense/task kisi bhi khule project par dala ja sakta hai, private par sirf member."""
+    if is_manager(user):
+        return queryset
+    return queryset.filter(Q(is_private=False) | Q(members=user)).distinct()
 
 
 def can_view_task(user, task):
     if not getattr(user, 'is_authenticated', False):
         return False
-    if is_manager(user) or not task.project_id:
+    if is_manager(user) or task.assigned_to_id == user.id or task.created_by_id == user.id:
         return True
-    if task.assigned_to_id == user.id or task.created_by_id == user.id:
-        return True
-    project = task.project
-    return (not project.is_private) or project.members.filter(pk=user.pk).exists()
+    return bool(task.project_id) and task.project.members.filter(pk=user.pk).exists()
 
 
 def can_edit_task(user, task):
