@@ -25,7 +25,7 @@
             <td class="num">{{ currency }}{{ c.amount|floatformat:"2g" }}</td>
             <td class="row-actions">
                 <form method="POST" action="{% url 'claim_approve' c.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Approve</button></form>
-                <form method="POST" action="{% url 'claim_reject' c.pk %}" class="inline" onsubmit="var n = prompt('Reason for rejecting (optional)'); if (n === null) { return false; } this.note.value = n;">{% csrf_token %}<input type="hidden" name="note" value=""><button type="submit" class="btn btn-ghost btn-sm">Reject</button></form>
+                <form method="POST" action="{% url 'claim_reject' c.pk %}" class="inline" data-prompt="Reason for rejecting (optional)" data-prompt-field="note">{% csrf_token %}<input type="hidden" name="note" value=""><button type="submit" class="btn btn-ghost btn-sm">Reject</button></form>
             </td>
         </tr>
         {% endfor %}
@@ -51,7 +51,7 @@
             <td class="num">{{ currency }}{{ c.amount|floatformat:"2g" }}</td>
             <td><span class="pill"><span class="dot {% if c.status == 'approved' %}c-completed{% elif c.status == 'submitted' %}c-pending{% else %}p-high{% endif %}"></span>{% if c.is_paid %}Paid in payslip{% elif c.payslip_id %}In a draft payslip{% else %}{{ c.get_status_display }}{% endif %}</span></td>
             <td class="row-actions">
-                {% if c.can_delete %}<form method="POST" action="{% url 'claim_delete' c.pk %}" class="inline" onsubmit="return confirm('Delete this claim?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>{% endif %}
+                {% if c.can_delete %}<form method="POST" action="{% url 'claim_delete' c.pk %}" class="inline" data-confirm="Delete this claim?">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>{% endif %}
             </td>
         </tr>
         {% endfor %}

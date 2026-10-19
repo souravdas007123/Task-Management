@@ -12,7 +12,7 @@
         <form method="POST" action="{% url 'cycle_generate' cycle.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-primary">Add everyone</button></form>
         {% endif %}
         <form method="POST" action="{% url 'cycle_toggle' cycle.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost">{% if cycle.is_open %}Close cycle{% else %}Reopen{% endif %}</button></form>
-        <form method="POST" action="{% url 'cycle_delete' cycle.pk %}" class="inline" onsubmit="return confirm('Delete this cycle and all its reviews?');">{% csrf_token %}<button type="submit" class="btn btn-ghost">Delete</button></form>
+        <form method="POST" action="{% url 'cycle_delete' cycle.pk %}" class="inline" data-confirm="Delete this cycle and all its reviews?">{% csrf_token %}<button type="submit" class="btn btn-ghost">Delete</button></form>
     </div>
 </div>
 <div class="stat-row stat-row-3">

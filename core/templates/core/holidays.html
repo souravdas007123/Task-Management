@@ -22,7 +22,7 @@
                     <td class="nowrap">{{ h.date|date:"d M Y" }}</td>
                     <td>{{ h.date|date:"l" }}</td>
                     <td>{{ h.name }}</td>
-                    {% if hr %}<td class="row-actions"><form method="POST" action="{% url 'holiday_delete' h.pk %}" class="inline" onsubmit="return confirm('Remove this holiday?');">{% csrf_token %}<button type="submit" class="link-btn">Remove</button></form></td>{% endif %}
+                    {% if hr %}<td class="row-actions"><form method="POST" action="{% url 'holiday_delete' h.pk %}" class="inline" data-confirm="Remove this holiday?">{% csrf_token %}<button type="submit" class="link-btn">Remove</button></form></td>{% endif %}
                 </tr>
                 {% endfor %}
             </tbody>

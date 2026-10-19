@@ -79,7 +79,7 @@
     </div>
     {% else %}
     <p class="muted">Never assigned.</p>
-    <form method="POST" action="{% url 'asset_delete' asset.pk %}" onsubmit="return confirm('Delete this asset?');">{% csrf_token %}<button type="submit" class="link-btn">Delete this asset</button></form>
+    <form method="POST" action="{% url 'asset_delete' asset.pk %}" data-confirm="Delete this asset?">{% csrf_token %}<button type="submit" class="link-btn">Delete this asset</button></form>
     {% endif %}
 </section>
 {% endblock %}

@@ -11,7 +11,7 @@
         {% for d in departments %}
         <li>
             <span>{{ d.name }} <span class="muted">({{ d.people }} {{ d.people|pluralize:"person,people" }})</span></span>
-            <form method="POST" action="{% url 'department_delete' d.pk %}" class="inline" onsubmit="return confirm('Delete this department? People in it will have no department.');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
+            <form method="POST" action="{% url 'department_delete' d.pk %}" class="inline" data-confirm="Delete this department? People in it will have no department.">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
         </li>
         {% endfor %}
     </ul>

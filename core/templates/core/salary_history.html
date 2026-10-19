@@ -26,7 +26,7 @@
                     <td class="num">{{ s.pf_percent|floatformat:"-2" }}</td>
                     <td class="num">{{ currency }}{{ s.tax|floatformat:"2g" }}</td>
                     <td class="num">{{ currency }}{{ s.other_deduction|floatformat:"2g" }}</td>
-                    <td class="row-actions"><form method="POST" action="{% url 'salary_delete' s.pk %}" class="inline" onsubmit="return confirm('Delete this salary structure? Existing payslips stay as they are.');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form></td>
+                    <td class="row-actions"><form method="POST" action="{% url 'salary_delete' s.pk %}" class="inline" data-confirm="Delete this salary structure? Existing payslips stay as they are.">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form></td>
                 </tr>
                 {% endfor %}
             </tbody>

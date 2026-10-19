@@ -41,7 +41,7 @@
                     <td>{{ c.get_kind_display }}</td>
                     <td class="nowrap">{{ c.started_on|date:"d M Y" }}</td>
                     <td>{{ c.done }} of {{ c.total }}{% if c.completed_at %} <span class="chip">Complete</span>{% endif %}</td>
-                    <td class="row-actions"><form method="POST" action="{% url 'checklist_delete' c.pk %}" class="inline" onsubmit="return confirm('Delete this checklist?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form></td>
+                    <td class="row-actions"><form method="POST" action="{% url 'checklist_delete' c.pk %}" class="inline" data-confirm="Delete this checklist?">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form></td>
                 </tr>
                 {% endfor %}
             </tbody>

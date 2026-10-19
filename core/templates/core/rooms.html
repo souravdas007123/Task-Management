@@ -31,7 +31,7 @@
                     <td>{{ b.title }}<div class="task-meta"><span class="muted">{{ b.booked_by.get_full_name|default:b.booked_by.username }}</span></div></td>
                     <td class="row-actions">
                         {% if b.can_cancel %}
-                        <form method="POST" action="{% url 'booking_cancel' b.pk %}" class="inline" onsubmit="return confirm('Cancel this booking?');">{% csrf_token %}<button type="submit" class="link-btn">Cancel</button></form>
+                        <form method="POST" action="{% url 'booking_cancel' b.pk %}" class="inline" data-confirm="Cancel this booking?">{% csrf_token %}<button type="submit" class="link-btn">Cancel</button></form>
                         {% endif %}
                     </td>
                 </tr>

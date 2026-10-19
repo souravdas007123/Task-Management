@@ -15,7 +15,7 @@
         {% if hr %}
         <span class="row-actions">
             <a href="{% url 'announcement_edit' a.pk %}" class="btn btn-ghost btn-sm">Edit</a>
-            <form method="POST" action="{% url 'announcement_delete' a.pk %}" class="inline" onsubmit="return confirm('Delete this announcement?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
+            <form method="POST" action="{% url 'announcement_delete' a.pk %}" class="inline" data-confirm="Delete this announcement?">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
         </span>
         {% endif %}
     </div>

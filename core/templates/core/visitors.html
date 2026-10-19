@@ -39,7 +39,7 @@
                         {% if hr %}
                         <form method="POST" action="{% url 'visitor_checkin' v.pk %}" class="inline">{% csrf_token %}<input type="text" name="badge_no" maxlength="20" class="form-control" placeholder="Badge" aria-label="Badge number" size="6"> <button type="submit" class="btn btn-ghost btn-sm">Check in</button></form>
                         {% endif %}
-                        <form method="POST" action="{% url 'visitor_cancel' v.pk %}" class="inline" onsubmit="return confirm('Cancel this visit?');">{% csrf_token %}<button type="submit" class="link-btn">Cancel</button></form>
+                        <form method="POST" action="{% url 'visitor_cancel' v.pk %}" class="inline" data-confirm="Cancel this visit?">{% csrf_token %}<button type="submit" class="link-btn">Cancel</button></form>
                     {% elif v.status == 'in' and hr %}
                         <form method="POST" action="{% url 'visitor_checkout' v.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Check out</button></form>
                     {% endif %}

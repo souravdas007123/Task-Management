@@ -24,7 +24,7 @@
     <div class="head-actions" style="margin-bottom: 12px;">
         <form method="POST" action="{% url 'payroll_generate' %}" class="inline">{% csrf_token %}<input type="hidden" name="month" value="{{ month_key }}"><button type="submit" class="btn btn-primary">Create payslips for {{ label }}</button></form>
         {% if drafts %}
-        <form method="POST" action="{% url 'payroll_publish_all' %}" class="inline" onsubmit="return confirm('Publish {{ drafts }} payslip(s)? Employees will see them and get a notification.');">{% csrf_token %}<input type="hidden" name="month" value="{{ month_key }}"><button type="submit" class="btn btn-ghost">Publish all drafts ({{ drafts }})</button></form>
+        <form method="POST" action="{% url 'payroll_publish_all' %}" class="inline" data-confirm="Publish {{ drafts }} payslip(s)? Employees will see them and get a notification.">{% csrf_token %}<input type="hidden" name="month" value="{{ month_key }}"><button type="submit" class="btn btn-ghost">Publish all drafts ({{ drafts }})</button></form>
         {% endif %}
         {% if slips %}<a href="{% url 'payroll_export' %}?month={{ month_key }}" class="btn btn-ghost">Download CSV</a>{% endif %}
     </div>
@@ -50,9 +50,9 @@
                         <a href="{% url 'payslip_adjust' s.pk %}" class="btn btn-ghost btn-sm">Adjust</a>
                         <form method="POST" action="{% url 'payslip_recalculate' s.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Recalculate</button></form>
                         <form method="POST" action="{% url 'payslip_publish' s.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Publish</button></form>
-                        <form method="POST" action="{% url 'payslip_delete' s.pk %}" class="inline" onsubmit="return confirm('Delete this draft?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
+                        <form method="POST" action="{% url 'payslip_delete' s.pk %}" class="inline" data-confirm="Delete this draft?">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
                         {% else %}
-                        <form method="POST" action="{% url 'payslip_reopen' s.pk %}" class="inline" onsubmit="return confirm('Move back to draft? The employee will no longer see it.');">{% csrf_token %}<button type="submit" class="link-btn">Reopen</button></form>
+                        <form method="POST" action="{% url 'payslip_reopen' s.pk %}" class="inline" data-confirm="Move back to draft? The employee will no longer see it.">{% csrf_token %}<button type="submit" class="link-btn">Reopen</button></form>
                         {% endif %}
                     </td>
                 </tr>

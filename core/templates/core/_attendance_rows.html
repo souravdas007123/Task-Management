@@ -21,7 +21,7 @@
                 {% if hr %}
                 <td class="row-actions">
                     <a href="{% url 'attendance_edit' person.pk r.date|date:'Y-m-d' %}" class="btn btn-ghost btn-sm">{% if r.record %}Edit{% else %}Add{% endif %}</a>
-                    {% if r.record %}<form method="POST" action="{% url 'attendance_delete' r.record.pk %}" class="inline" onsubmit="return confirm('Delete this entry?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>{% endif %}
+                    {% if r.record %}<form method="POST" action="{% url 'attendance_delete' r.record.pk %}" class="inline" data-confirm="Delete this entry?">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>{% endif %}
                 </td>
                 {% endif %}
             </tr>

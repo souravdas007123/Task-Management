@@ -32,7 +32,7 @@
                     {% if d.needs_ack %}<form method="POST" action="{% url 'document_ack' d.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-primary btn-sm">I have read this</button></form>{% endif %}
                     {% if hr %}
                     <a href="{% url 'document_edit' d.pk %}" class="btn btn-ghost btn-sm">Edit</a>
-                    <form method="POST" action="{% url 'document_delete' d.pk %}" class="inline" onsubmit="return confirm('Delete this document?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
+                    <form method="POST" action="{% url 'document_delete' d.pk %}" class="inline" data-confirm="Delete this document?">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
                     {% endif %}
                 </td>
             </tr>

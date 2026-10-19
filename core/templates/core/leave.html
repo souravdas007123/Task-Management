@@ -86,11 +86,11 @@
                             <form method="POST" action="{% url 'leave_approve' leave.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="next" value="{{ next_url }}"><button type="submit" class="btn btn-ghost btn-sm">Approve</button></form>
                             {% endif %}
                             {% if leave.status != 'rejected' %}
-                            <form method="POST" action="{% url 'leave_reject' leave.pk %}" class="inline" onsubmit="var n = prompt('Reason for rejecting (optional)'); if (n === null) { return false; } this.note.value = n;">{% csrf_token %}<input type="hidden" name="next" value="{{ next_url }}"><input type="hidden" name="note" value=""><button type="submit" class="btn btn-ghost btn-sm">Reject</button></form>
+                            <form method="POST" action="{% url 'leave_reject' leave.pk %}" class="inline" data-prompt="Reason for rejecting (optional)" data-prompt-field="note">{% csrf_token %}<input type="hidden" name="next" value="{{ next_url }}"><input type="hidden" name="note" value=""><button type="submit" class="btn btn-ghost btn-sm">Reject</button></form>
                             {% endif %}
                         {% endif %}
                         {% if leave.can_cancel %}
-                        <form method="POST" action="{% url 'leave_cancel' leave.pk %}" class="inline" onsubmit="return confirm('Cancel this request?');">{% csrf_token %}<button type="submit" class="link-btn">Cancel</button></form>
+                        <form method="POST" action="{% url 'leave_cancel' leave.pk %}" class="inline" data-confirm="Cancel this request?">{% csrf_token %}<button type="submit" class="link-btn">Cancel</button></form>
                         {% endif %}
                     </td>
                 </tr>

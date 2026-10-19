@@ -37,7 +37,7 @@
                         </select>
                         <noscript><button type="submit" class="btn btn-ghost btn-sm">Move</button></noscript>
                     </form>
-                    <form method="POST" action="{% url 'candidate_delete' c.pk %}" class="inline" onsubmit="return confirm('Delete this candidate?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
+                    <form method="POST" action="{% url 'candidate_delete' c.pk %}" class="inline" data-confirm="Delete this candidate?">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>
                 </div>
             </article>
             {% empty %}

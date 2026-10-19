@@ -29,9 +29,9 @@
                     <input type="text" name="hr_note" maxlength="300" class="form-control" placeholder="Note (optional)" aria-label="Note">
                     <button type="submit" class="btn btn-primary btn-sm">Accept</button>
                 </form>
-                <form method="POST" action="{% url 'exit_reject' r.pk %}" class="inline" onsubmit="var n = prompt('Reason (optional)'); if (n === null) { return false; } this.hr_note.value = n;">{% csrf_token %}<input type="hidden" name="hr_note" value=""><button type="submit" class="link-btn">Reject</button></form>
+                <form method="POST" action="{% url 'exit_reject' r.pk %}" class="inline" data-prompt="Reason (optional)" data-prompt-field="hr_note">{% csrf_token %}<input type="hidden" name="hr_note" value=""><button type="submit" class="link-btn">Reject</button></form>
                 {% elif r.status == 'accepted' %}
-                <form method="POST" action="{% url 'exit_complete' r.pk %}" onsubmit="return confirm('Complete the exit? Their login will be disabled.');">{% csrf_token %}<button type="submit" class="btn {% if r.ready %}btn-primary{% else %}btn-ghost{% endif %} btn-sm">Complete exit</button></form>
+                <form method="POST" action="{% url 'exit_complete' r.pk %}" data-confirm="Complete the exit? Their login will be disabled.">{% csrf_token %}<button type="submit" class="btn {% if r.ready %}btn-primary{% else %}btn-ghost{% endif %} btn-sm">Complete exit</button></form>
                 {% endif %}
             </td>
         </tr>

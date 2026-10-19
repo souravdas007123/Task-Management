@@ -24,7 +24,7 @@
             <td>{% if d.is_verified %}<span class="pill"><span class="dot c-completed"></span>Verified</span>{% else %}<span class="muted">Not verified</span>{% endif %}</td>
             <td class="row-actions">
                 {% if hr and not own %}<form method="POST" action="{% url 'vault_verify' d.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">{% if d.is_verified %}Unverify{% else %}Verify{% endif %}</button></form>{% endif %}
-                {% if hr or not d.is_verified %}<form method="POST" action="{% url 'vault_delete' d.pk %}" class="inline" onsubmit="return confirm('Delete this document?');">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>{% endif %}
+                {% if hr or not d.is_verified %}<form method="POST" action="{% url 'vault_delete' d.pk %}" class="inline" data-confirm="Delete this document?">{% csrf_token %}<button type="submit" class="link-btn">Delete</button></form>{% endif %}
             </td>
         </tr>
         {% endfor %}

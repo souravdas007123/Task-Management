@@ -166,3 +166,7 @@ Employees see only their own data: tasks assigned to them, created by them or in
 ## Sidebar
 
 Sections (Work, Me, Office, Management, HR, Reports, Inbox) collapse and remember their state; the section of the current page always stays open. "Find a page" filters the menu as you type (press `/` to focus it, Enter opens the first match, Esc clears). On phones the menu opens from a button.
+
+## Confirm and reason popups
+
+Delete, cancel, reject and similar actions open an in-page popup instead of the browser's alert. Reject actions ask for an optional reason. Add `data-confirm="Question?"` (or `data-prompt="Label" data-prompt-field="note"` with a hidden `note` input) to any POST form to get the same popup.

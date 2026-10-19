@@ -41,14 +41,14 @@
                         </form>
                         {% endif %}
                         {% if expense.status != 'rejected' %}
-                        <form method="POST" action="{% url 'expense_reject' expense.pk %}" class="inline" onsubmit="var n = prompt('Reason for rejecting (optional)'); if (n === null) { return false; } this.note.value = n;">
+                        <form method="POST" action="{% url 'expense_reject' expense.pk %}" class="inline" data-prompt="Reason for rejecting (optional)" data-prompt-field="note">
                             {% csrf_token %}<input type="hidden" name="next" value="{{ next_url }}"><input type="hidden" name="note" value="">
                             <button type="submit" class="btn btn-ghost btn-sm">Reject</button>
                         </form>
                         {% endif %}
                     {% endif %}
                     {% if manager or expense.can_delete %}
-                    <form method="POST" action="{% url 'expense_delete' expense.pk %}" class="inline" onsubmit="return confirm('Delete this expense?');">
+                    <form method="POST" action="{% url 'expense_delete' expense.pk %}" class="inline" data-confirm="Delete this expense?">
                         {% csrf_token %}<input type="hidden" name="next" value="{{ next_url }}">
                         <button type="submit" class="link-btn">Delete</button>
                     </form>

@@ -72,7 +72,7 @@
             <td><div class="task-title">{{ p.title }}</div><div class="task-meta"><span class="muted">{{ p.get_category_display }}, {{ p.quantity }} x {{ currency }}{{ p.unit_cost|floatformat:"2g" }}, {{ p.created_at|date:"d M Y" }}</span></div></td>
             <td class="num">{{ currency }}{% if p.actual_cost %}{{ p.actual_cost|floatformat:"2g" }}{% else %}{{ p.total|floatformat:"2g" }}{% endif %}</td>
             <td><span class="pill"><span class="dot {% if p.status == 'received' or p.status == 'approved' or p.status == 'ordered' %}c-completed{% elif p.status == 'pending' or p.status == 'review' %}c-pending{% elif p.status == 'cancelled' %}c-hold{% else %}p-high{% endif %}"></span>{{ p.get_status_display }}</span>{% if p.review_note %}<div class="task-meta"><span class="muted">{{ p.review_note }}</span></div>{% endif %}</td>
-            <td class="row-actions">{% if p.status == 'pending' or p.status == 'review' or p.status == 'approved' %}<form method="POST" action="{% url 'purchase_cancel' p.pk %}" class="inline" onsubmit="return confirm('Cancel this request?');">{% csrf_token %}<button type="submit" class="link-btn">Cancel</button></form>{% endif %}</td>
+            <td class="row-actions">{% if p.status == 'pending' or p.status == 'review' or p.status == 'approved' %}<form method="POST" action="{% url 'purchase_cancel' p.pk %}" class="inline" data-confirm="Cancel this request?">{% csrf_token %}<button type="submit" class="link-btn">Cancel</button></form>{% endif %}</td>
         </tr>
         {% endfor %}
         </tbody>

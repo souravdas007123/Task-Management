@@ -20,7 +20,7 @@
         {% if current.hr_note %}<dt>HR note</dt><dd>{{ current.hr_note }}</dd>{% endif %}
     </dl>
     {% if current.status == 'accepted' %}<p class="muted">Your offboarding checklist is listed on My profile. Please return company assets before your last day.</p>{% endif %}
-    <form method="POST" action="{% url 'resign_withdraw' %}" onsubmit="return confirm('Withdraw your resignation?');">{% csrf_token %}<button type="submit" class="btn btn-ghost">Withdraw resignation</button></form>
+    <form method="POST" action="{% url 'resign_withdraw' %}" data-confirm="Withdraw your resignation?">{% csrf_token %}<button type="submit" class="btn btn-ghost">Withdraw resignation</button></form>
 </section>
 {% else %}
 <section class="card form-card">

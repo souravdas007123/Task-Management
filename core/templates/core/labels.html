@@ -19,7 +19,7 @@
             <a href="{% url 'dashboard' %}?label={{ label.pk }}" class="chip chip-lg"><span class="dot" style="background: {{ label.color }}"></span>{{ label.name }}</a>
             <span class="muted">{{ label.task_count }} task{{ label.task_count|pluralize }}</span>
             {% if user_is_manager %}
-            <form method="POST" action="{% url 'label_delete' label.pk %}" onsubmit="return confirm('Delete this label? It is removed from all tasks.');">
+            <form method="POST" action="{% url 'label_delete' label.pk %}" data-confirm="Delete this label? It is removed from all tasks.">
                 {% csrf_token %}
                 <button type="submit" class="link-btn">Delete</button>
             </form>

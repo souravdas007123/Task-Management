@@ -25,7 +25,7 @@
             <td>{{ r.reason }}</td>
             <td class="row-actions">
                 <form method="POST" action="{% url 'request_approve' r.pk %}" class="inline">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Approve</button></form>
-                <form method="POST" action="{% url 'request_reject' r.pk %}" class="inline" onsubmit="var n = prompt('Reason for rejecting (optional)'); if (n === null) { return false; } this.note.value = n;">{% csrf_token %}<input type="hidden" name="note" value=""><button type="submit" class="btn btn-ghost btn-sm">Reject</button></form>
+                <form method="POST" action="{% url 'request_reject' r.pk %}" class="inline" data-prompt="Reason for rejecting (optional)" data-prompt-field="note">{% csrf_token %}<input type="hidden" name="note" value=""><button type="submit" class="btn btn-ghost btn-sm">Reject</button></form>
             </td>
         </tr>
         {% endfor %}

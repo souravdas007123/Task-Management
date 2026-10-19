@@ -13,7 +13,7 @@
         <td>{{ r.user.get_full_name|default:r.user.username }}</td><td>{{ r.user.username }}</td><td>{{ r.user.email }}</td><td>{{ r.created_at|date:"d M, H:i" }}</td>
         <td>
             <form method="POST" action="{% url 'signup_approve' r.pk %}" style="display:inline">{% csrf_token %}<button class="btn btn-primary btn-sm" type="submit">Approve</button></form>
-            <form method="POST" action="{% url 'signup_reject' r.pk %}" style="display:inline" onsubmit="return confirm('Reject and delete this request?');">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">Reject</button></form>
+            <form method="POST" action="{% url 'signup_reject' r.pk %}" style="display:inline" data-confirm="Reject and delete this request?">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">Reject</button></form>
         </td>
     </tr>
     {% endfor %}

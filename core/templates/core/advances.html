@@ -28,7 +28,7 @@
                     <input type="text" name="note" maxlength="300" class="form-control" placeholder="Note (optional)" aria-label="Note">
                     <button type="submit" class="btn btn-primary btn-sm">Approve</button>
                 </form>
-                <form method="POST" action="{% url 'advance_reject' a.pk %}" class="inline" onsubmit="var n = prompt('Reason (optional)'); if (n === null) { return false; } this.note.value = n;">{% csrf_token %}<input type="hidden" name="note" value=""><button type="submit" class="link-btn">Reject</button></form>
+                <form method="POST" action="{% url 'advance_reject' a.pk %}" class="inline" data-prompt="Reason (optional)" data-prompt-field="note">{% csrf_token %}<input type="hidden" name="note" value=""><button type="submit" class="link-btn">Reject</button></form>
             </td>
         </tr>
         {% endfor %}
@@ -50,7 +50,7 @@
             <td class="num">{{ currency }}{{ a.repaid|floatformat:"2g" }}</td>
             <td class="num">{{ currency }}{{ a.balance|floatformat:"2g" }}</td>
             <td>{{ a.first_month|date:"M Y" }}</td>
-            <td class="row-actions"><form method="POST" action="{% url 'advance_close' a.pk %}" class="inline" onsubmit="return confirm('Stop further deductions for this advance?');">{% csrf_token %}<button type="submit" class="link-btn">Close early</button></form></td>
+            <td class="row-actions"><form method="POST" action="{% url 'advance_close' a.pk %}" class="inline" data-confirm="Stop further deductions for this advance?">{% csrf_token %}<button type="submit" class="link-btn">Close early</button></form></td>
         </tr>
         {% endfor %}
         </tbody>

@@ -323,5 +323,88 @@
 </div>
 {% endwith %}
 {% block scripts %}{% endblock %}
+<div class="modal-backdrop" id="app-modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="app-modal-title">
+        <h2 class="modal-title" id="app-modal-title"></h2>
+        <p class="modal-text" id="app-modal-text" hidden></p>
+        <label class="modal-field" id="app-modal-field" hidden>
+            <span class="modal-label">Reason (optional)</span>
+            <textarea id="app-modal-input" class="form-control" rows="3" maxlength="500"></textarea>
+        </label>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-ghost" id="app-modal-cancel">Cancel</button>
+            <button type="button" class="btn btn-primary" id="app-modal-ok">OK</button>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    var backdrop = document.getElementById('app-modal');
+    if (!backdrop) { return; }
+    var title = document.getElementById('app-modal-title');
+    var text = document.getElementById('app-modal-text');
+    var field = document.getElementById('app-modal-field');
+    var input = document.getElementById('app-modal-input');
+    var ok = document.getElementById('app-modal-ok');
+    var cancel = document.getElementById('app-modal-cancel');
+    var pending = null, opener = null, bypass = false;
+
+    function close() {
+        backdrop.hidden = true;
+        document.body.classList.remove('modal-open');
+        pending = null;
+        if (opener && opener.focus) { opener.focus(); }
+    }
+    function open(form, submitter) {
+        pending = form;
+        opener = submitter || document.activeElement;
+        var message = form.getAttribute('data-confirm');
+        var ask = form.getAttribute('data-prompt');
+        var label = (submitter && submitter.textContent.trim()) || 'OK';
+        var danger = /delete|reject|remove|cancel|withdraw|stop|move back|complete/i.test(label + ' ' + (message || ask || ''));
+        title.textContent = message || ask || 'Are you sure?';
+        text.hidden = true;
+        field.hidden = !ask;
+        if (ask) {
+            title.textContent = label + (label.toLowerCase() === 'reject' ? ' this request?' : '?');
+            field.querySelector('.modal-label').textContent = ask;
+            input.value = '';
+        }
+        ok.textContent = label;
+        ok.className = 'btn ' + (danger ? 'btn-danger' : 'btn-primary');
+        backdrop.hidden = false;
+        document.body.classList.add('modal-open');
+        (ask ? input : ok).focus();
+    }
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (bypass || !form.hasAttribute || !(form.hasAttribute('data-confirm') || form.hasAttribute('data-prompt'))) { return; }
+        e.preventDefault();
+        open(form, e.submitter);
+    }, true);
+    ok.addEventListener('click', function () {
+        var form = pending;
+        if (!form) { return; }
+        var name = form.getAttribute('data-prompt-field');
+        if (name && form.elements[name]) { form.elements[name].value = input.value.trim(); }
+        bypass = true;
+        backdrop.hidden = true;
+        document.body.classList.remove('modal-open');
+        form.submit();
+    });
+    cancel.addEventListener('click', close);
+    backdrop.addEventListener('mousedown', function (e) { if (e.target === backdrop) { close(); } });
+    document.addEventListener('keydown', function (e) {
+        if (backdrop.hidden) { return; }
+        if (e.key === 'Escape') { e.preventDefault(); close(); }
+        if (e.key === 'Tab') {
+            var items = [input, cancel, ok].filter(function (el) { return el.offsetParent !== null; });
+            var i = items.indexOf(document.activeElement);
+            e.preventDefault();
+            items[(i + (e.shiftKey ? items.length - 1 : 1)) % items.length].focus();
+        }
+    });
+})();
+</script>
 </body>
 </html>
