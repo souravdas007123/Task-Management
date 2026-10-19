@@ -21,7 +21,15 @@
             Office Hub
         </a>
 
-        <nav class="nav" aria-label="Main">
+        <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Menu">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+
+        <div class="nav-search">
+            <input type="search" id="nav-filter" class="form-control" placeholder="Find a page   ( / )" aria-label="Find a page" autocomplete="off">
+        </div>
+
+        <nav class="nav" id="site-nav" aria-label="Main">
             <a href="{% url 'home' %}" {% if url_name == 'home' %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg>
                 Home
@@ -30,7 +38,7 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11v3a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1zM17 8a5 5 0 0 1 0 8"/></svg>
                 Announcements
             </a>
-            <div class="nav-section">Work</div>
+            <details class="nav-group" data-group="Work" open><summary class="nav-section">Work</summary>
             <a href="{% url 'dashboard' %}?mine=1" {% if url_name == 'dashboard' and request.GET.mine %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
                 My tasks
@@ -61,7 +69,8 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
                 Projects
             </a>
-            <div class="nav-section">Me</div>
+            </details>
+            <details class="nav-group" data-group="Me" open><summary class="nav-section">Me</summary>
             <a href="{% url 'attendance_me' %}" {% if url_name in "attendance_me attendance_team attendance_person attendance_edit request_list request_add" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3.5 2"/></svg>
                 Attendance
@@ -94,7 +103,8 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zM12 10a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>
                 Expenses
             </a>
-            <div class="nav-section">Office</div>
+            </details>
+            <details class="nav-group" data-group="Office" open><summary class="nav-section">Office</summary>
             <a href="{% url 'people' %}" {% if url_name in "people org_chart my_profile holiday_list" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM2 20a7 7 0 0 1 14 0M16 4.5a3.5 3.5 0 0 1 0 7M19 20a6 6 0 0 0-3-5.2"/></svg>
                 People
@@ -119,8 +129,9 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg>
                 Helpdesk
             </a>
+            </details>
             {% if user_is_manager %}
-            <div class="nav-section">Management</div>
+            <details class="nav-group" data-group="Management" open><summary class="nav-section">Management</summary>
             <a href="{% url 'budget_overview' %}" {% if url_name in "budget_overview project_budget" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 6.5H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg>
                 Budget
@@ -137,9 +148,10 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6l1 2h3v15H5V6h3zM9 12h6M9 16h6"/></svg>
                 Audit log
             </a>
+            </details>
             {% endif %}
             {% if user_is_hr %}
-            <div class="nav-section">HR</div>
+            <details class="nav-group" data-group="HR" open><summary class="nav-section">HR</summary>
             <a href="{% url 'signup_list' %}" {% if url_name in "signup_list employee_add" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM4 20a8 8 0 0 1 16 0M19 4v6M16 7h6"/></svg>
                 Sign ups and new staff
@@ -168,9 +180,10 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
                 Onboarding
             </a>
+            </details>
             {% endif %}
             {% if not user_is_manager %}
-            <div class="nav-section">Reports</div>
+            <details class="nav-group" data-group="Reports" open><summary class="nav-section">Reports</summary>
             <a href="{% url 'task_report' %}" {% if url_name in "task_report" %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
                 Reports
@@ -179,14 +192,84 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>
                 Analytics
             </a>
+            </details>
             {% endif %}
-            <div class="nav-section">Inbox</div>
+            <details class="nav-group" data-group="Inbox" open><summary class="nav-section">Inbox</summary>
             <a href="{% url 'notifications' %}" {% if url_name == 'notifications' %}aria-current="page"{% endif %}>
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
                 Notifications
                 {% if unread_notifications_count %}<span class="badge-count" aria-label="{{ unread_notifications_count }} unread">{{ unread_notifications_count }}</span>{% endif %}
             </a>
+            </details>
         </nav>
+        <script>
+        (function () {
+            var sidebar = document.querySelector('.sidebar');
+            var nav = document.querySelector('.sidebar .nav');
+            if (!sidebar || !nav) { return; }
+            var groups = Array.prototype.slice.call(nav.querySelectorAll('details.nav-group'));
+            var links = Array.prototype.slice.call(nav.querySelectorAll('a'));
+            var KEY = 'nav-closed';
+            var closed = [];
+            try { closed = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { closed = []; }
+            groups.forEach(function (g) {
+                var name = g.getAttribute('data-group');
+                var hasActive = !!g.querySelector('[aria-current="page"]');
+                if (closed.indexOf(name) !== -1 && !hasActive) { g.removeAttribute('open'); }
+                g.addEventListener('toggle', function () {
+                    if (filtering) { return; }
+                    var now = groups.filter(function (x) { return !x.open; }).map(function (x) { return x.getAttribute('data-group'); });
+                    try { localStorage.setItem(KEY, JSON.stringify(now)); } catch (e) {}
+                });
+            });
+
+            // Page dhundhne ka filter
+            var filtering = false;
+            var box = document.getElementById('nav-filter');
+            var wasOpen = null;
+            function applyFilter() {
+                var q = box.value.trim().toLowerCase();
+                if (q && !filtering) { wasOpen = groups.map(function (g) { return g.open; }); }
+                filtering = !!q;
+                links.forEach(function (a) {
+                    a.hidden = !!q && a.textContent.toLowerCase().indexOf(q) === -1;
+                });
+                groups.forEach(function (g, i) {
+                    var any = Array.prototype.some.call(g.querySelectorAll('a'), function (a) { return !a.hidden; });
+                    g.hidden = !any;
+                    if (q) { g.open = true; } else if (wasOpen) { g.open = wasOpen[i]; }
+                });
+                if (!q) { wasOpen = null; }
+            }
+            if (box) {
+                box.addEventListener('input', applyFilter);
+                box.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') { box.value = ''; applyFilter(); box.blur(); }
+                    if (e.key === 'Enter') {
+                        var first = links.filter(function (a) { return !a.hidden; })[0];
+                        if (first) { window.location.href = first.href; }
+                    }
+                });
+                document.addEventListener('keydown', function (e) {
+                    var tag = (e.target.tagName || '').toLowerCase();
+                    if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey && tag !== 'input' && tag !== 'textarea' && tag !== 'select' && !e.target.isContentEditable) {
+                        e.preventDefault();
+                        sidebar.classList.add('is-open');
+                        box.focus();
+                    }
+                });
+            }
+
+            // Chhoti screen par menu button
+            var toggle = document.querySelector('.nav-toggle');
+            if (toggle) {
+                toggle.addEventListener('click', function () {
+                    var open = sidebar.classList.toggle('is-open');
+                    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                });
+            }
+        })();
+        </script>
         <script>
         (function () {
             var nav = document.querySelector('.sidebar .nav');

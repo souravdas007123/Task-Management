@@ -162,3 +162,7 @@ Limits: older uploads (task attachments, claim receipts, candidate resumes, comp
 ## What an employee can see
 
 Employees see only their own data: tasks assigned to them, created by them or in a project they are a member of; their own leave, claims, expenses, advances, tickets, payslips and documents. Team pages (workload, team attendance, budget, payroll, audit log, HR pages) are for managers, HR and admin only. The staff directory (name, post, department) stays visible to everyone.
+
+## Sidebar
+
+Sections (Work, Me, Office, Management, HR, Reports, Inbox) collapse and remember their state; the section of the current page always stays open. "Find a page" filters the menu as you type (press `/` to focus it, Enter opens the first match, Esc clears). On phones the menu opens from a button.

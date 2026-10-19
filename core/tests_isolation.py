@@ -1,10 +1,12 @@
 """Employee (member) ko sirf apna data dikhna chahiye, doosre ka nahi."""
 import datetime
 import json
+import shutil
+import tempfile
 
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -22,7 +24,16 @@ def make(name, role='member'):
     return user
 
 
+TMP_MEDIA = tempfile.mkdtemp(prefix='isolation-media-')
+
+
+@override_settings(MEDIA_ROOT=TMP_MEDIA)
 class IsolationTests(TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TMP_MEDIA, ignore_errors=True)
+
     def setUp(self):
         self.alice, self.bob, self.mgr = make('alice'), make('bob'), make('mgr', 'manager')
         day = timezone.localdate()
