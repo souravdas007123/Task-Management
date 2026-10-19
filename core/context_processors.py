@@ -7,8 +7,9 @@ from .permissions import is_hr, is_manager, role_of
 def app_context(request):
     """Sidebar ke liye: unread notifications, user ka role aur currency (har template mein available)."""
     user = getattr(request, 'user', None)
+    from . import signup
     if user is None or not user.is_authenticated:
-        return {}
+        return {'signup_enabled': signup.enabled()}
     return {
         'unread_notifications_count': Notification.objects.filter(user=user, is_read=False).count(),
         'user_role': role_of(user),

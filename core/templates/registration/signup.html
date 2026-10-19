@@ -1,0 +1,24 @@
+{% extends 'core/auth/auth_base.html' %}
+{% block title %}Sign up{% endblock %}
+{% block body %}
+<h1 style="font-size: 22px; margin-bottom: 4px;">Create your account</h1>
+<p class="muted" style="margin: 0 0 20px;">{% if open %}Your account is ready as soon as you sign up.{% else %}HR will approve your account before you can log in.{% endif %}</p>
+<form method="POST" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-error-box" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form %}
+    {% if field.name == 'website' %}
+    <div style="position:absolute;left:-10000px;" aria-hidden="true"><label for="{{ field.id_for_label }}">Leave this empty</label>{{ field }}</div>
+    {% else %}
+    <div class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+        {{ field.errors }}
+    </div>
+    {% endif %}
+    {% endfor %}
+    <button type="submit" class="btn btn-primary btn-block">Sign up</button>
+</form>
+<p class="muted signup-hint">Already have an account? <a href="{% url 'login' %}">Log in</a></p>
+{% endblock %}

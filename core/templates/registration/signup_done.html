@@ -1,0 +1,7 @@
+{% extends 'core/auth/auth_base.html' %}
+{% block title %}Thank you{% endblock %}
+{% block body %}
+<h1 style="font-size: 22px; margin-bottom: 8px;">{% if open %}Account created{% else %}Request sent{% endif %}</h1>
+<p class="muted">{% if open %}You can log in now.{% else %}HR will review your request. You can log in once it is approved.{% endif %}</p>
+<a href="{% url 'login' %}" class="btn btn-primary btn-block">Go to log in</a>
+{% endblock %}

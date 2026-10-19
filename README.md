@@ -147,3 +147,14 @@ Limits: no pro-rata salary for the exit month (the full month is paid unless HR 
 - **Purchase requests** (`/purchases/`, vendors at `/hr/vendors/`): the reporting manager (or HR when there is none) approves first. Above `DJANGO_PURCHASE_LIMIT` (default 10000) a second approval from HR/admin is needed, and it cannot be the same person (the admin role can do both). HR marks the request ordered (vendor, PO number) and received (real cost). If the request is charged to a project, receiving it adds an approved expense to that project's budget and triggers the budget alerts.
 
 Limits: older uploads (task attachments, claim receipts, candidate resumes, company documents) are still served by URL; only employee documents are private. Advances are deducted from payslips, so an employee with no payslip in a month is not charged that month.
+
+## Employee Home, sign up and accounts
+
+- **Home** (`/`): every employee's own dashboard: check in/out, "waiting for you", my tasks, leave balance, next holidays, latest payslip, announcements, birthdays and quick actions. The old team dashboard is now **All tasks** (`/tasks/`).
+- **Sign up** (`/signup/`): linked from the login page. By default an account is inactive until HR approves it under **HR > Sign ups and new staff**. Rejecting deletes the pending account.
+- **Add employee** (HR): HR creates a login with a temporary password. The employee must choose a new password at first login. Only admin can create HR accounts.
+- Settings (environment variables):
+  - `DJANGO_SIGNUP_MODE`: `approval` (default), `open` (active immediately) or `off`.
+  - `DJANGO_SIGNUP_DOMAINS`: comma-separated allowed email domains (empty = any).
+  - `DJANGO_SIGNUP_MAX_PER_HOUR`: sign ups per IP per hour (default 5). Uses the Django cache.
+- Run `python manage.py migrate` (migration 0016).

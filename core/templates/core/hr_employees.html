@@ -7,6 +7,7 @@
         <p class="page-sub">Employee records and salaries. Only admin and HR can see this page.</p>
     </div>
     <div class="head-actions">
+        <a href="{% url 'employee_add' %}" class="btn btn-ghost">Add employee</a>
         <a href="{% url 'payroll' %}" class="btn btn-primary">Payroll</a>
         <a href="{% url 'advance_list' %}" class="btn btn-ghost">Advances</a>
         <a href="{% url 'attendance_team' %}" class="btn btn-ghost">Attendance</a>

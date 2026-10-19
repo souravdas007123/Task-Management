@@ -2,14 +2,15 @@ from django.contrib.auth import views as auth_views
 from django.urls import path, reverse_lazy
 
 from . import (
-    views, views_api, views_attendance, views_budget, views_company, views_facilities, views_hr, views_misc,
+    views, views_accounts, views_api, views_attendance, views_budget, views_company, views_facilities, views_home, views_hr, views_misc,
     views_money, views_office, views_projects, views_purchase, views_reports, views_requests, views_talent, views_vault,
     views_work, views_workplace,
 )
 
 urlpatterns = [
     # Tasks
-    path('', views.dashboard, name='dashboard'),
+    path('', views_home.home, name='home'),
+    path('tasks/', views.dashboard, name='dashboard'),
     path('add/', views.add_task, name='add_task'),
     path('update/<int:pk>/', views.update_task, name='update_task'),
     path('delete/<int:pk>/', views.delete_task, name='delete_task'),
@@ -186,6 +187,10 @@ urlpatterns = [
     path('purchases/<int:pk>/cancel/', views_purchase.purchase_cancel, name='purchase_cancel'),
     path('purchases/<int:pk>/order/', views_purchase.purchase_order, name='purchase_order'),
     path('purchases/<int:pk>/receive/', views_purchase.purchase_receive, name='purchase_receive'),
+    path('hr/signups/', views_accounts.signup_list, name='signup_list'),
+    path('hr/signups/<int:pk>/approve/', views_accounts.signup_approve, name='signup_approve'),
+    path('hr/signups/<int:pk>/reject/', views_accounts.signup_reject, name='signup_reject'),
+    path('hr/employees/add/', views_accounts.employee_add, name='employee_add'),
     path('hr/vendors/', views_purchase.vendor_list, name='vendor_list'),
     path('hr/vendors/add/', views_purchase.vendor_add, name='vendor_add'),
     path('hr/vendors/<int:pk>/edit/', views_purchase.vendor_edit, name='vendor_edit'),
@@ -234,9 +239,9 @@ urlpatterns = [
     # Auth
     path('login/', auth_views.LoginView.as_view(), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
-    path('password/change/', auth_views.PasswordChangeView.as_view(
-        template_name='core/auth/password_change.html', success_url=reverse_lazy('password_change_done'),
-    ), name='password_change'),
+    path('signup/', views_accounts.signup_view, name='signup'),
+    path('signup/done/', views_accounts.signup_done, name='signup_done'),
+    path('password/change/', views_accounts.ForcedPasswordChangeView.as_view(), name='password_change'),
     path('password/change/done/', auth_views.PasswordChangeDoneView.as_view(
         template_name='core/auth/password_change_done.html',
     ), name='password_change_done'),

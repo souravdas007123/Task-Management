@@ -1,0 +1,7 @@
+{% extends 'core/auth/auth_base.html' %}
+{% block title %}Sign up{% endblock %}
+{% block body %}
+<h1 style="font-size: 22px; margin-bottom: 8px;">{% if too_many %}Too many attempts{% else %}Sign up is closed{% endif %}</h1>
+<p class="muted">{% if too_many %}Please try again in an hour.{% else %}Ask HR to create an account for you.{% endif %}</p>
+<a href="{% url 'login' %}" class="btn btn-primary btn-block">Back to log in</a>
+{% endblock %}

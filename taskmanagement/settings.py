@@ -55,6 +55,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'core.middleware.PasswordChangeRequiredMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -157,6 +158,13 @@ PRIVATE_ROOT = os.environ.get('DJANGO_PRIVATE_ROOT', os.path.join(BASE_DIR, 'pri
 # Budget aur expenses mein dikhne wala currency symbol (DJANGO_CURRENCY_SYMBOL se badlo, e.g. "$")
 CURRENCY_SYMBOL = os.environ.get('DJANGO_CURRENCY_SYMBOL', '₹')
 
+# Khud sign up: 'approval' (HR approve kare tab account active, default), 'open' (turant active), 'off' (band)
+SIGNUP_MODE = os.environ.get('DJANGO_SIGNUP_MODE', 'approval').strip().lower()
+# Sirf in email domains ko sign up ki ijazat (comma se alag, e.g. "company.com,corp.in"). Khali = koi bhi.
+SIGNUP_ALLOWED_DOMAINS = [d.strip().lower().lstrip('@') for d in os.environ.get('DJANGO_SIGNUP_DOMAINS', '').split(',') if d.strip()]
+# Ek IP se ek ghante mein zyada se zyada itne sign up
+SIGNUP_MAX_PER_HOUR = int(os.environ.get('DJANGO_SIGNUP_MAX_PER_HOUR', '5'))
+
 # Is amount se upar ki purchase request ko manager ke baad HR/finance ki doosri approval bhi chahiye
 PURCHASE_APPROVAL_LIMIT = os.environ.get('DJANGO_PURCHASE_LIMIT', '10000')
 # Salary advance zyada se zyada itne mahine ki gross salary tak
@@ -181,7 +189,7 @@ DEFAULT_FROM_EMAIL = os.environ.get('DJANGO_FROM_EMAIL', 'Office Hub <noreply@lo
 
 # Login settings (dashboard, add/update task, report ab login ke baad hi khulenge)
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard'
+LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
 
 

@@ -9,6 +9,7 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .attendance import DAY_LABELS, late_cutoff, month_data, work_start
@@ -59,6 +60,13 @@ def attendance_me(request):
     })
 
 
+def _back(request):
+    target = request.POST.get('next', '')
+    if target and url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}):
+        return redirect(target)
+    return redirect('attendance_me')
+
+
 @login_required
 @require_POST
 def check_in(request):
@@ -72,7 +80,7 @@ def check_in(request):
         messages.success(request, f'Checked in at {timezone.localtime(now):%H:%M}.')
     else:
         messages.error(request, 'You have already checked in today.')
-    return redirect('attendance_me')
+    return _back(request)
 
 
 @login_required
@@ -88,7 +96,7 @@ def check_out(request):
         record.check_out = max(now, record.check_in)
         record.save(update_fields=['check_out'])
         messages.success(request, f'Checked out at {timezone.localtime(now):%H:%M}. Worked {record.hours:.1f} hours.')
-    return redirect('attendance_me')
+    return _back(request)
 
 
 def _team_context(request):

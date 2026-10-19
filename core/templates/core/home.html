@@ -1,0 +1,99 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Hello, {{ request.user.first_name|default:request.user.username }}</h1>
+        <p class="page-sub">{{ today|date:"l, d F Y" }}{% if on_leave %} · You are on leave today{% endif %}</p>
+    </div>
+</div>
+
+<section class="card" aria-labelledby="today-title">
+    <h2 class="card-title" id="today-title">Today</h2>
+    {% if record %}
+        <p>Checked in at <strong>{{ record.check_in|time:"H:i" }}</strong>{% if record.mode == 'wfh' %} (work from home){% endif %}.
+        {% if record.check_out %}Checked out at <strong>{{ record.check_out|time:"H:i" }}</strong>.{% endif %}</p>
+        {% if not record.check_out %}
+        <form method="POST" action="{% url 'check_out' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'home' %}"><button class="btn btn-primary" type="submit">Check out</button></form>
+        {% endif %}
+    {% else %}
+        <p class="muted">You have not checked in yet.</p>
+        <form method="POST" action="{% url 'check_in' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'home' %}"><button class="btn btn-primary" type="submit">Check in</button></form>
+    {% endif %}
+</section>
+
+{% if todos %}
+<section class="card" aria-labelledby="todo-title">
+    <h2 class="card-title" id="todo-title">Waiting for you</h2>
+    <ul class="todo-list">{% for text, url in todos %}<li><a href="{{ url }}">{{ text }}</a></li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+<section class="card" aria-labelledby="tasks-title">
+    <div class="card-title-row"><h2 class="card-title" id="tasks-title">My tasks</h2><a href="{% url 'dashboard' %}?mine=1" class="btn btn-ghost btn-sm">See all</a></div>
+    <p class="muted">{{ open_count }} open{% if overdue_count %} · <strong>{{ overdue_count }} overdue</strong>{% endif %}</p>
+    {% if my_tasks %}
+    <ul class="plain-list">
+        {% for t in my_tasks %}
+        <li><a href="{% url 'task_detail' t.pk %}">{{ t.title }}</a><span class="muted">{{ t.status }}{% if t.due_date %} · due {{ t.due_date|date:"d M" }}{% endif %}</span></li>
+        {% endfor %}
+    </ul>
+    {% else %}<p class="muted">Nothing assigned to you right now.</p>{% endif %}
+</section>
+
+<section class="card" aria-labelledby="leave-title">
+    <div class="card-title-row"><h2 class="card-title" id="leave-title">My leave</h2><a href="{% url 'leave_add' %}" class="btn btn-ghost btn-sm">Apply</a></div>
+    {% if balances %}
+    <ul class="plain-list">
+        {% for b in balances %}<li><span>{{ b.label }}</span><span class="muted">{{ b.remaining }} of {{ b.quota }} left</span></li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% if pending_leaves %}<p class="muted">{{ pending_leaves }} request{{ pending_leaves|pluralize }} waiting for approval.</p>{% endif %}
+    {% if holidays %}
+    <h3 class="card-title" style="font-size:14px;margin-top:12px;">Next holidays</h3>
+    <ul class="plain-list">{% for h in holidays %}<li><span>{{ h.name }}</span><span class="muted">{{ h.date|date:"D, d M" }}</span></li>{% endfor %}</ul>
+    {% endif %}
+</section>
+
+{% if payslip %}
+<section class="card" aria-labelledby="pay-title">
+    <h2 class="card-title" id="pay-title">Latest payslip</h2>
+    <p><a href="{% url 'payslip_detail' payslip.pk %}">View payslip for {{ payslip.month }}/{{ payslip.year }}</a></p>
+</section>
+{% endif %}
+
+{% if announcements %}
+<section class="card" aria-labelledby="news-title">
+    <div class="card-title-row"><h2 class="card-title" id="news-title">Announcements</h2><a href="{% url 'announcement_list' %}" class="btn btn-ghost btn-sm">See all</a></div>
+    {% for a in announcements %}
+    <div class="comment-body" style="margin-bottom: 8px;"><strong>{% if a.is_pinned %}<span class="chip">Pinned</span> {% endif %}{{ a.title }}</strong> <span class="muted">{{ a.created_at|date:"d M" }}</span><div class="muted">{{ a.body|truncatechars:160 }}</div></div>
+    {% endfor %}
+</section>
+{% endif %}
+
+{% if celebrations %}
+<section class="card" aria-labelledby="celebrate-title">
+    <h2 class="card-title" id="celebrate-title">This week</h2>
+    <ul class="plain-list">
+        {% for e in celebrations %}
+        <li><span>{% if e.kind == 'birthday' %}Birthday{% else %}{{ e.years }} year{{ e.years|pluralize }} at the company{% endif %}: <strong>{{ e.user.get_full_name|default:e.user.username }}</strong></span>
+        <span class="muted">{% if e.days_away == 0 %}Today{% elif e.days_away == 1 %}Tomorrow{% else %}{{ e.date|date:"d M" }}{% endif %}</span></li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+<section class="card" aria-labelledby="quick-title">
+    <h2 class="card-title" id="quick-title">Quick actions</h2>
+    <div class="quick-grid">
+        <a class="btn btn-ghost" href="{% url 'add_task' %}">Add task</a>
+        <a class="btn btn-ghost" href="{% url 'leave_add' %}">Apply for leave</a>
+        <a class="btn btn-ghost" href="{% url 'claim_list' %}">Claim expense</a>
+        <a class="btn btn-ghost" href="{% url 'ticket_add' %}">Raise a ticket</a>
+        <a class="btn btn-ghost" href="{% url 'my_profile' %}">My profile</a>
+        <a class="btn btn-ghost" href="{% url 'my_payslips' %}">Payslips</a>
+    </div>
+</section>
+{% endblock %}

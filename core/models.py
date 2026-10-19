@@ -83,6 +83,8 @@ class UserProfile(models.Model):
     date_of_birth = models.DateField(null=True, blank=True)
     # Exit complete hone par HR bharta hai; uske baad ke mahino ki payslip nahi banti
     exit_date = models.DateField(null=True, blank=True)
+    # HR ne account banaya ho to pehle login par password badalna zaroori
+    must_change_password = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.user.username} ({self.get_role_display()})'
@@ -1165,3 +1167,15 @@ class PurchaseRequest(models.Model):
     @property
     def total(self):
         return self.unit_cost * self.quantity
+
+
+class SignupRequest(models.Model):
+    """Khud sign up karne wale ka account: user inactive rehta hai jab tak HR approve na kare."""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='signup_request')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'id']
+
+    def __str__(self):
+        return f'signup {self.user_id}'

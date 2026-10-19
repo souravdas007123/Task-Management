@@ -19,7 +19,7 @@ from .filters import SORT_CHOICES, filter_tasks, parse_int, scope_tasks, sort_ta
 from .forms import AttachmentForm, ChecklistItemForm, CommentForm, TaskForm, TimeEntryForm
 from .models import (
     Advance, Announcement, Attachment, ChecklistItem, CompanyDocument, Comment, DocumentAck, EmployeeDocument, Label,
-    Project, PurchaseRequest, Review, Task, Ticket, TimeEntry, Visitor,
+    Project, PurchaseRequest, Review, SignupRequest, Task, Ticket, TimeEntry, Visitor,
 )
 from .permissions import (
     can_delete_task, can_edit_task, can_view_task, is_hr, is_manager, visible_projects, visible_tasks,
@@ -142,6 +142,9 @@ def office_todos(user):
     if own_docs:
         items.append((f'{own_docs} of your document{"s" if own_docs != 1 else ""} expired or expiring soon', reverse('vault_me')))
     if is_hr(user):
+        signups = SignupRequest.objects.count()
+        if signups:
+            items.append((f'{signups} sign up request{"s" if signups != 1 else ""} waiting for approval', reverse('signup_list')))
         hr_docs = EmployeeDocument.objects.filter(
             expires_on__isnull=False, expires_on__lte=soon, user__is_active=True).exclude(user=user).count()
         if hr_docs:
